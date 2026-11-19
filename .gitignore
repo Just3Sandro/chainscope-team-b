@@ -1,12 +1,27 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+coverage/
+build/
+
+# Secrets / environnement (les valeurs réelles ne sont jamais commitées)
 .env
 .env.*
 !.env.example
-__pycache__/
-.pytest_cache/
-.venv/
+
+# Données de dev (preuves, exports)
+data/
+
+# Frontend
 node_modules/
 dist/
-build/
-coverage/
+
+# E2E Playwright
+test-results/
+playwright-report/
+
+# Divers
 *.log
 .DS_Store
