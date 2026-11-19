@@ -35,11 +35,17 @@ A_PASSWORD_RESET: str = "password.reset"
 A_PLATFORM_ADMIN_CREATED: str = "platform_admin.created"
 A_PLATFORM_ADMIN_EXISTING: str = "platform_admin.existing"
 
+# --- Actions (issue #7, plateforme) -------------------------------------------
+A_PLATFORM_TENANT_CREATED: str = "platform.tenant.created"
+A_PLATFORM_TENANT_SUSPENDED: str = "platform.tenant.suspended"
+A_PLATFORM_TENANT_REACTIVATED: str = "platform.tenant.reactivated"
+
 # --- Types d'entité ----------------------------------------------------------
 ENTITY_USER: str = "user"
 ENTITY_SESSION: str = "session"
 ENTITY_PASSWORD_RESET_TOKEN: str = "password_reset_token"
 ENTITY_PLATFORM_ADMIN: str = "platform_admin"
+ENTITY_TENANT: str = "tenant"
 
 
 @dataclass
@@ -88,10 +94,14 @@ __all__ = [
     "A_PASSWORD_RESET_REQUESTED",
     "A_PLATFORM_ADMIN_CREATED",
     "A_PLATFORM_ADMIN_EXISTING",
+    "A_PLATFORM_TENANT_CREATED",
+    "A_PLATFORM_TENANT_REACTIVATED",
+    "A_PLATFORM_TENANT_SUSPENDED",
     "AuditContext",
     "ENTITY_PASSWORD_RESET_TOKEN",
     "ENTITY_PLATFORM_ADMIN",
     "ENTITY_SESSION",
+    "ENTITY_TENANT",
     "ENTITY_USER",
     "record",
 ]

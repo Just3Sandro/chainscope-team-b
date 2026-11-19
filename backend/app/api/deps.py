@@ -16,12 +16,13 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import Depends, Request
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.db import get_db
 from app.exceptions import ApiError, ErrorCode
-from app.models import User
+from app.models import PlatformAdmin, User
 from app.security.sessions import lookup_active_session
 
 MSG_UNAUTHENTICATED = "Non connecté"
@@ -84,12 +85,35 @@ AuthenticatedUser = Annotated[User, Depends(get_current_user)]
 OptionalUser = Annotated[User | None, Depends(get_optional_user)]
 
 
+def require_platform_admin(user: AuthenticatedUser, db: DbSession) -> User:
+    """Garde plateforme (issue #7, spec §1/§6) : ``PLATFORM_ADMIN`` UNIQUEMENT.
+
+    Vérifie la présence de l'utilisateur dans ``platform_admins``
+    (source unique des rôles — spec §8 : aucune permission déduite du
+    body ni de l'URL). Toute autre session authentifiée — ``TENANT_ADMIN``,
+    ``PENTESTER``, ``CLIENT_VIEWER`` — reçoit un 403 ``FORBIDDEN`` ;
+    l'absence de session est déjà refusée en amont (401 ``UNAUTHENTICATED``,
+    ``get_current_user``).
+    """
+    row = db.execute(
+        select(PlatformAdmin.id).where(PlatformAdmin.user_id == user.id)
+    ).scalar_one_or_none()
+    if row is None:
+        raise ApiError.forbidden()
+    return user
+
+
+PlatformAdminUser = Annotated[User, Depends(require_platform_admin)]
+
+
 __all__ = [
     "AuthenticatedUser",
     "DbSession",
     "MSG_UNAUTHENTICATED",
     "OptionalUser",
+    "PlatformAdminUser",
     "get_current_user",
     "get_optional_user",
     "get_request_id",
+    "require_platform_admin",
 ]
