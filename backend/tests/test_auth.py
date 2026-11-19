@@ -165,11 +165,13 @@ async def test_f01_login_me_logout_relogin(client, db) -> None:
     assert body1["id"] == str(user.id)
     # Cookie posé avec attributs D-04 (T-14) — valeurs insensibles à la
     # casse (RFC 6265bis) ; starlette rend `SameSite=lax` en minuscule.
+    # Path=/api (arbitrage Cyber T-14, PR #32 : le backend ne sert que
+    # /api/v1 => portée du cookie strictement plus étroite que /).
     set_cookie = r1.headers["set-cookie"].lower()
     assert "cs_session=" in set_cookie
     assert "httponly" in set_cookie
     assert "samesite=lax" in set_cookie
-    assert "path=/" in set_cookie
+    assert "path=/api" in set_cookie
     token1 = session_cookie_of(r1)
 
     # /me OK

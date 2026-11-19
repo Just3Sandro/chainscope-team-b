@@ -37,13 +37,15 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 def _set_session_cookie(response: Response, token: str) -> None:
     """Cookie de session (D-04) : HttpOnly, SameSite=Lax, Secure si
-    ``SESSION_COOKIE_SECURE`` (défaut : dérivé de ``ENV``), Path=/."""
+    ``SESSION_COOKIE_SECURE`` (défaut : dérivé de ``ENV``), ``Path=/api``
+    (arbitrage Cyber T-14, PR #32 : le backend ne sert que ``/api/v1``,
+    le path le plus étroit possible limite la portée du cookie)."""
     settings = get_settings()
     response.set_cookie(
         key=settings.SESSION_COOKIE_NAME,
         value=token,
         max_age=settings.SESSION_LIFETIME_HOURS * 3600,
-        path="/",
+        path="/api",
         httponly=True,
         samesite="lax",
         secure=settings.session_cookie_secure,
@@ -52,12 +54,13 @@ def _set_session_cookie(response: Response, token: str) -> None:
 
 def _delete_session_cookie(response: Response) -> None:
     """Suppression du cookie avec des attributs **identiques** au set
-    (D-04, issue #5) : un cookie ne se supprime que posé sur le même
-    chemin avec les mêmes attributs de sécurité."""
+    (D-04, issue #5 ; arbitrage Cyber T-14 : ``Path=/api`` comme la pose) :
+    un cookie ne se supprime que posé sur le même chemin avec les mêmes
+    attributs de sécurité."""
     settings = get_settings()
     response.delete_cookie(
         key=settings.SESSION_COOKIE_NAME,
-        path="/",
+        path="/api",
         httponly=True,
         samesite="lax",
         secure=settings.session_cookie_secure,
