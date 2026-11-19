@@ -2,7 +2,9 @@
 
 `request_id` relie l'événement au middleware X-Request-ID ; `metadata_json`
 porte des métadonnées non sensibles uniquement (spec §3.9, §8 : jamais de
-token ni de mot de passe — test F18).
+token ni de mot de passe — test F18). `actor_id` est nullable (migration
+0002, issue #5) : les échecs de login sur e-mail inconnu n'ont pas
+d'acteur identifié.
 """
 from __future__ import annotations
 
@@ -29,8 +31,8 @@ class AuditEvent(Base):
     tenant_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("tenants.id", name="fk_audit_events_tenant"), nullable=True
     )
-    actor_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("users.id", name="fk_audit_events_actor"), nullable=False
+    actor_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", name="fk_audit_events_actor"), nullable=True
     )
     action: Mapped[str] = mapped_column(String(100), nullable=False)
     entity_type: Mapped[str] = mapped_column(String(100), nullable=False)

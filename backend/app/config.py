@@ -65,6 +65,13 @@ class Settings(BaseSettings):
     PAGINATION_DEFAULT_LIMIT: int = 20
     PAGINATION_MAX_LIMIT: int = 100
 
+    # --- E-mails de réinitialisation / invitations (D-12) ------------------
+    PUBLIC_BASE_URL: str = "http://localhost:8080"
+    """Base URL publique (frontend) utilisée pour construire les liens
+    complets des e-mails transactionnels (D-12 ; défaut documenté dans
+    `.env.example`). Origine unique (D-01) : en dev locale, le frontend
+    est servi sur le port 8080."""
+
     # --- Validité des jetons (spec §8 : usage unique, expiration courte) --
     INVITATION_LIFETIME_HOURS: int = 24
     PASSWORD_RESET_LIFETIME_MINUTES: int = 30
