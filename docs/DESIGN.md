@@ -358,7 +358,7 @@ CABINET — NomDuCabinet
 ### P8 — Administration plateforme (`/platform/tenants`, `/platform/users`)
 
 - **Rôle** : PLATFORM_ADMIN (garde 3.4).
-- **Tenants** : tableau (nom, slug mono, statut actif/suspendu, membres (count), créé le) + « Nouveau tenant » (modale 2 étapes : 1) nom + slug, 2) e-mail de l'admin à inviter — la 2ᵉ étape récapitule destinataire + rôle et vaut confirmation (4.5-9)) + menu ligne : Suspendre / Réactiver (confirm. 4.5-8 : « Les membres ne pourront plus se connecter ; les données sont conservées. »).
+- **Tenants** : tableau (nom, slug mono, statut actif/suspendu, membres (count), créé le) + « Nouveau tenant » (modale 2 étapes : 1) nom + slug, 2) e-mail de l'admin à inviter — la 2ᵉ étape récapitule destinataire + rôle et vaut confirmation (4.5-9) + menu ligne : Suspendre / Réactiver (confirm. 4.5-8 : « Les membres ne pourront plus se connecter ; les données sont conservées. »).
 - **Comptes** : tableau (e-mail, statut actif/inactif, espaces (chips comptées : « 2 cabinets · 1 client » — **compteurs uniquement**, pas de détails), créé le) + menu ligne : Désactiver / Réactiver le compte (confirmation).
 - **États** : vides (aucun tenant : CTA) ; erreur/chargement standards.
 - **Interdits** : aucune lecture des données métiers (missions, constats, preuves, journaux tenant) — pas de lien, pas de colonne ; pas de modification d'un slug existant ; le détail d'un tenant s'ouvre seulement sur un sous-tableau de ses membres (e-mail + rôle), jamais sur ses ressources.
