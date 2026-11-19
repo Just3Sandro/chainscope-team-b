@@ -36,15 +36,32 @@ class ErrorCode(str, Enum):
     RATE_LIMITED = "RATE_LIMITED"
     GRAPH_TOO_COMPLEX = "GRAPH_TOO_COMPLEX"
     INTERNAL = "INTERNAL"
+    # --- issue #5 (authentification) ---------------------------------------
+    UNAUTHENTICATED = "UNAUTHENTICATED"
+    INVALID_CREDENTIALS = "INVALID_CREDENTIALS"
+    CSRF_INVALID = "CSRF_INVALID"
+    INVALID_TOKEN = "INVALID_TOKEN"
 
 
 class ApiError(Exception):
-    """Exception métier levée par les services/routes."""
+    """Exception métier levée par les services/routes.
 
-    def __init__(self, status_code: int, code: ErrorCode, message: str) -> None:
+    ``headers`` porte des en-têtes supplémentaires de la réponse
+    normalisée (ex. ``Retry-After`` sur 429, D-07) — jamais de corps
+    non conforme au contrat ``{"error": {code, message, request_id}}``.
+    """
+
+    def __init__(
+        self,
+        status_code: int,
+        code: ErrorCode,
+        message: str,
+        headers: dict[str, str] | None = None,
+    ) -> None:
         self.status_code = status_code
         self.code = code
         self.message = message
+        self.headers = headers
         super().__init__(message)
 
     @classmethod
@@ -72,8 +89,13 @@ class ApiError(Exception):
         return cls(413, ErrorCode.PAYLOAD_TOO_LARGE, message)
 
     @classmethod
-    def rate_limited(cls, message: str = "Trop de requêtes") -> "ApiError":
-        return cls(429, ErrorCode.RATE_LIMITED, message)
+    def rate_limited(
+        cls, message: str = "Trop de requêtes", retry_after: int | None = None
+    ) -> "ApiError":
+        """429 normalisé + en-tête ``Retry-After`` (D-07) quand le délai
+        de réessai est connu (limiteur fenêtre glissante)."""
+        headers = {"Retry-After": str(retry_after)} if retry_after is not None else None
+        return cls(429, ErrorCode.RATE_LIMITED, message, headers=headers)
 
     @classmethod
     def graph_too_complex(cls, message: str) -> "ApiError":
@@ -123,15 +145,23 @@ def _request_id(request: Request) -> str:
 
 
 def _error_response(
-    request: Request, status_code: int, code: ErrorCode, message: str
+    request: Request,
+    status_code: int,
+    code: ErrorCode,
+    message: str,
+    headers: dict[str, str] | None = None,
 ) -> JSONResponse:
     detail = ErrorDetail(code=code.value, message=message, request_id=_request_id(request))
-    return JSONResponse(status_code=status_code, content={"error": detail.model_dump()})
+    return JSONResponse(
+        status_code=status_code, content={"error": detail.model_dump()}, headers=headers
+    )
 
 
 # --- gestionnaires (enregistrés dans create_app) ----------------------------
 async def api_error_handler(request: Request, exc: ApiError) -> JSONResponse:
-    return _error_response(request, exc.status_code, exc.code, exc.message)
+    return _error_response(
+        request, exc.status_code, exc.code, exc.message, headers=exc.headers
+    )
 
 
 async def integrity_error_handler(request: Request, exc: IntegrityError) -> JSONResponse:
