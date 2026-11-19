@@ -57,5 +57,7 @@ Journal opérationnel : horodatage (Europe/Paris), faits, interventions, état. 
 6. ✅ **Jalon 1 CLOS** (13:03Z) : PR #24/#25/#26 fusionnées en squash sur main (`77c5220`, `3f45af8`, `24651ed`) ; issues #1/#2/#3 fermées.
 7. Issue de suivi **#27** créée (visibilité comptes plateforme P8, P2, à trancher avec #7).
 8. ✅ **Jalon 2 lancé** (13:10Z) : 2 sous-agents Développeur en parallèle — socle backend `feature/4-backend-socle` (issue #4) et socle frontend `feature/18-frontend-socle` (issue #18, DESIGN.md §2.2/§4/§5.P1).
+9. ✅ PR **#28** (D-17, contrat `GET /auth/me`, Tech Lead) revue QA « prêt à merge » et **fusionnée** (`6f0817d`) — contrat figé avant l'auth (#5), le frontend #18 code déjà contre lui.
+10. Issue **#27** (visibilité comptes plateforme P8, P2) ouverte pour arbitrage avec #7.
 
 **Rappels de process (03/04) :** branche par issue, PR avec `Closes #n`, revue QA (+ Cyber si sensible) par un rôle distinct, tests réellement exécutés avant merge, jamais de push direct sur `main`, commits conventionnels en français.
