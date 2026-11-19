@@ -52,7 +52,9 @@ export function ResetPasswordPage() {
     setFormError(null)
     setSubmitting(true)
     try {
-      await api.resetPassword(tokenValue, password)
+      // Contrat figé (D-19 / PR #32) : `password_confirmation` est exigé par le
+      // serveur (422 si absent ou différent) — déjà validé côté client ci-dessus.
+      await api.resetPassword(tokenValue, password, confirmation)
       navigate('/login?reset=1', { replace: true })
     } catch (error) {
       if (error instanceof ApiError && (error.status === 400 || error.status === 401 || error.status === 404 || error.status === 409)) {

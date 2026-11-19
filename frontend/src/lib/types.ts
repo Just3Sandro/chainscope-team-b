@@ -1,9 +1,10 @@
 /**
- * Types provisoires du contrat d'authentification (spec §6, DECISIONS D-04/D-05).
+ * Types du contrat d'authentification (spec §6, DECISIONS D-04/D-05).
  *
- * ⚠️ Contrat PROVISOIRE : figé par la PR backend d'authentification (#5).
- * Toute divergence côté backend doit être signalée dans la revue de cette PR
- * et alignée ici avant le Jalon 2 (vertical slice).
+ * - `GET /auth/me` : figé par **D-17** (mergée).
+ * - Autres routes auth (`/auth/csrf`, `/auth/login`, `/auth/reset-password`…) :
+ *   contrat figé par le registre de décisions **D-19** (PR backend #32, issue #5,
+ *   non mergée mais validée) — aligné dans cette issue #33.
  */
 
 /** Rôles du cabinet, stockés dans `tenant_memberships` (spec §1). */
@@ -26,7 +27,7 @@ export interface ClientMembership {
   role?: ClientRole
 }
 
-/** Contrat `GET /auth/me` (provisoire, cf. PR #5). */
+/** Contrat `GET /auth/me` (figé par D-17). */
 export interface AuthMe {
   id: string
   email: string
@@ -37,7 +38,7 @@ export interface AuthMe {
 }
 
 /**
- * Réponse de `GET /auth/csrf` (provisoire, cf. DECISIONS D-05).
+ * Réponse de `GET /auth/csrf` (contrat auth, D-19 / PR #32).
  * Le token est opaque par session ; seul son hash est stocké côté serveur.
  */
 export interface CsrfResponse {

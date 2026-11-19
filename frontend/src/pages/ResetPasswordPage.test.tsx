@@ -64,7 +64,8 @@ describe('ResetPasswordPage — validation du mot de passe', () => {
     await submitReset(user)
     expect(await screen.findByTestId('login')).toBeInTheDocument()
     expect(vi.mocked(api.resetPassword)).toHaveBeenCalledTimes(1)
-    expect(vi.mocked(api.resetPassword)).toHaveBeenCalledWith('tk-123', 'Nouveau123')
+    // Contrat auth figé (D-19 / PR #32) : le 3ᵉ paramètre part dans `password_confirmation`.
+    expect(vi.mocked(api.resetPassword)).toHaveBeenCalledWith('tk-123', 'Nouveau123', 'Nouveau123')
   })
 
   it('refuse une confirmation non correspondante (le mot de passe est conforme)', async () => {
