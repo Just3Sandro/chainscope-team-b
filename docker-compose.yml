@@ -1,0 +1,110 @@
+# ChainScope — Docker Compose de développement (issue #16, socle F19/F20).
+#
+# Démarrage : `docker compose up --build` (README.md, section « Lancement de
+# l'application »).
+#
+# Ports côté HÔTE paramétrables : les défauts sont les ports standards
+# (5432, 8000, 8080, 8025, 1025). Pour coexister avec des conteneurs de dev
+# `cs-*` qui occupent déjà ces ports sur la machine, surcharger via `.env`
+# local (jamais commité) : POSTGRES_PORT / MAILPIT_UI_PORT / MAILPIT_SMTP_PORT
+# / BACKEND_PORT / FRONTEND_PORT (valeurs de référence : .env.example).
+#
+# SECRETS : aucune valeur réelle ici. POSTGRES_PASSWORD est une valeur
+# FICTIVE de dev (devfictional), surchargeable via `.env` local.
+#
+# Persistance : les volumes nommés `dbdata` (Postgres) et `evidencedata`
+# (preuves privées, D-09) survivent à `docker compose down` ; seuls
+# `down -v` les suppriment (destructif — cf. README).
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: chainscope
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-devfictional}" # FICTIF, dev uniquement
+      POSTGRES_DB: chainscope
+    # Port hôte paramétrable (défaut 5432, documenté — conflit possible avec
+    # un Postgres de dev local sur la même machine : cf. README « Mode décalé »).
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "chainscope", "-d", "chainscope"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - devnet
+
+  mailpit:
+    image: axllent/mailpit
+    # Ports hôte paramétrables : UI (défaut 8025) et SMTP (défaut 1025).
+    ports:
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"
+    healthcheck:
+      # API Mailpit : 200 JSON même sans message (wget présent dans l'image).
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8025/api/v1/messages"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - devnet
+
+  backend:
+    build: ./backend
+    environment:
+      ENV: "dev"
+      DATABASE_URL: "postgresql+psycopg2://chainscope:${POSTGRES_PASSWORD:-devfictional}@postgres:5432/chainscope"
+      EVIDENCE_DIR: "/data/evidence"
+      # SMTP via Mailpit, sans authentification. SMTP_PORT est le port SMTP de
+      # Mailpit DANS le conteneur : une valeur vide planterait pydantic-settings
+      # (champ int|None) au démarrage — dévié sciemment de « port vide ».
+      SMTP_HOST: "mailpit"
+      SMTP_PORT: "1025"
+      # Base publique de l'UI (liens des e-mails, D-12) : doit correspondre au
+      # port frontend exposé (défaut 8080).
+      PUBLIC_BASE_URL: "${PUBLIC_BASE_URL:-http://localhost:8080}"
+    # Port hôte paramétrable (défaut 8000).
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - evidencedata:/data/evidence
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy
+    healthcheck:
+      # python:3.12-slim n'a ni curl ni wget : variante python (urlopen lève
+      # une exception hors 2xx => non healthy).
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - devnet
+
+  frontend:
+    build: ./frontend
+    # Port hôte paramétrable (défaut 8080). nginx reverse-proxy /api/ -> backend:8000
+    # (frontend/nginx.conf, socle issue #18).
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - devnet
+
+networks:
+  devnet:
+    name: chainscope-dev
+
+volumes:
+  dbdata:
+  evidencedata:
