@@ -1,0 +1,102 @@
+# CI ChainScope (issue #17) — vérification des PR vers main et de main.
+#
+# - backend-tests : pytest + Postgres 16 (service) et Python 3.12 (parité
+#   image Docker python:3.12-slim, DECISIONS D-02), migrations vérifiées
+#   (alembic upgrade head + alembic check) avant les tests.
+# - frontend-tests : Node 22 (parité Dockerfile node:22-alpine), npm ci,
+#   typecheck, vitest, build, lint (oxlint déclaré dans le socle → ferme).
+# - compose-sanity : À AJOUTER quand docker-compose.yml arrive sur main
+#   (PR #16) : `docker compose config -q` (syntaxe seule, pas de build).
+#
+# Règle 04 : caches de dépendances autorisés ; aucun secret externe ;
+# aucune valeur SaaS payante. Identifiants de base de test = valeurs
+# fictives dev-only (D-16, cf. .env.example et tests/conftest.py).
+
+name: ChainScope CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  backend-tests:
+    name: Backend — pytest (Postgres 16, Python 3.12)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: chainscope
+          POSTGRES_PASSWORD: devfictional
+          POSTGRES_DB: chainscope_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: "postgresql+psycopg2://chainscope:devfictional@localhost:5432/chainscope_test"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: "Python 3.12 (parité image Docker, D-02)"
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dépendances (prod + dev)
+        run: pip install -r backend/requirements.txt -r backend/requirements-dev.txt
+
+      - name: Migrations — alembic upgrade head
+        working-directory: backend
+        run: alembic upgrade head
+
+      - name: Migrations — alembic check (pas de drift modèle/migration)
+        working-directory: backend
+        run: alembic check
+
+      - name: Tests — pytest -v
+        working-directory: backend
+        run: pytest -v
+
+  frontend-tests:
+    name: Frontend — typecheck, vitest, build, lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node.js 22 (parité Dockerfile node:22-alpine)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dépendances (npm ci — lockfile strict)
+        working-directory: frontend
+        run: npm ci
+
+      - name: Typecheck (tsc -b)
+        working-directory: frontend
+        run: npm run typecheck
+
+      - name: Tests (vitest run)
+        working-directory: frontend
+        run: npm run test
+
+      - name: Build (tsc -b && vite build)
+        working-directory: frontend
+        run: npm run build
+
+      - name: Lint (oxlint — déclaré dans le socle, échec si erreurs)
+        working-directory: frontend
+        run: npm run lint
