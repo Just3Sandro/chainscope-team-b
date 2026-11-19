@@ -9,6 +9,12 @@ from app.schemas.auth import (
     TenantMembershipOut,
 )
 from app.schemas.common import ErrorDetail, ErrorResponse, Page
+from app.schemas.platform import (
+    TenantCreateRequest,
+    TenantOut,
+    TenantPatchRequest,
+    TenantSummary,
+)
 
 __all__ = [
     "AuthMe",
@@ -20,5 +26,9 @@ __all__ = [
     "LoginRequest",
     "Page",
     "ResetPasswordRequest",
+    "TenantCreateRequest",
     "TenantMembershipOut",
+    "TenantOut",
+    "TenantPatchRequest",
+    "TenantSummary",
 ]
