@@ -8,9 +8,21 @@ portant `tenant_id` s'appuient sur des clés étrangères composites
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, Enum, ForeignKey, Index, String, Uuid, UniqueConstraint, text
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Index,
+    String,
+    Uuid,
+    UniqueConstraint,
+    func,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
@@ -33,6 +45,11 @@ class Tenant(Base):
     slug: Mapped[str] = mapped_column(String(200), nullable=False, unique=True)
     is_active: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, server_default=text("true")
+    )
+    # Issue #7 : le contrat de lecture/création plateforme exige `created_at`
+    # (spéc §5 se contentait de id/name/slug/is_active — écart documenté).
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 
     # --- relations ---
