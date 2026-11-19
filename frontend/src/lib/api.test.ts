@@ -112,6 +112,18 @@ describe('lib/api.ts', () => {
     expect(error).toMatchObject({ status: 502, code: 'HTTP_502', requestId: null })
   })
 
+  it('resetPassword : corps { token, password, password_confirmation } (contrat D-19 / PR #32), avec CSRF', async () => {
+    let body: unknown = null
+    const fetchMock = mockFetch((url, init) => {
+      if (url.endsWith('/auth/csrf')) return json(200, { csrf_token: 'tok' })
+      body = JSON.parse(String(init?.body)) as unknown
+      return json(204)
+    })
+    const client = new ApiClient({ fetchFn: fetchMock })
+    await client.resetPassword('tk-123', 'Nouveau123', 'Nouveau123')
+    expect(body).toEqual({ token: 'tk-123', password: 'Nouveau123', password_confirmation: 'Nouveau123' })
+  })
+
   it('401 sur un chargement : événement DOM + callback injectable, expired=false, pas de boucle de mutation', async () => {
     const listener = vi.fn()
     window.addEventListener(SESSION_EXPIRED_EVENT, listener as EventListener)

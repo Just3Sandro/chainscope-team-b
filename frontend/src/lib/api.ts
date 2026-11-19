@@ -182,7 +182,7 @@ export class ApiClient {
     if (this.csrfToken !== null) return Promise.resolve(this.csrfToken)
     if (this.csrfPromise === null) {
       this.csrfPromise = this.fetchCsrfToken().finally(() => {
-        // Échec (réseau, 401, 5xx) : le cache est vidé pour permettre une nouvel
+        // Échec (réseau, 401, 5xx) : le cache est vidé pour permettre une nouvelle
         // tentative à l'appelant suivant ; succès : le token reste en mémoire.
         if (this.csrfToken === null) this.csrfPromise = null
       })
@@ -244,9 +244,16 @@ export class ApiClient {
     return this.request<void>('/auth/forgot-password', { method: 'POST', body: { email } })
   }
 
-  /** `POST /auth/reset-password` — token à usage unique (D-12). */
-  resetPassword(token: string, password: string): Promise<void> {
-    return this.request<void>('/auth/reset-password', { method: 'POST', body: { token, password } })
+  /**
+   * `POST /auth/reset-password` — token à usage unique (D-12).
+   * Contrat figé (contrat auth D-19 / PR #32, issue #5) : le corps exige
+   * `password_confirmation` (422 si absent ou différent du mot de passe).
+   */
+  resetPassword(token: string, password: string, passwordConfirmation: string): Promise<void> {
+    return this.request<void>('/auth/reset-password', {
+      method: 'POST',
+      body: { token, password, password_confirmation: passwordConfirmation },
+    })
   }
 
   /** `POST /auth/accept-invitation` — token et nouveau mot de passe ; connexion automatique. */
