@@ -53,7 +53,7 @@ Registre des décisions non prescrites (règle 03 §4). Structure : date, statut
 
 ## D-08 — Validation des uploads de preuves
 - **Date** : 2026-11-19 — **Statut** : adoptée
-- **Décision** : validation triple : extension autorisée parmi `{.pdf, .png, .jpg, .jpeg, .txt}`, taille ≤ **10 Mio** (sinon 413, rien stocké durablement), et **signature binaire vérifiée via `puremagic`** (PDF/PNG/JPEG/TXT) ; le MIME déclaré doit être cohérent avec la signature détectée (sinon 400/422). Le nom de fichier fourni est ignoré (D-09).
+- **Décision** : validation triple : extension autorisée parmi `{.pdf, .png, .jpg, .jpeg, .txt}`, taille ≤ **10 Mio** (sinon 413, rien stocké durablement), et **signature binaire vérifiée via `puremagic`** (PDF/PNG/JPEG/TXT) ; le MIME déclaré doit être cohérent avec la signature détectée. Codes d'erreur harmonisés : `400` = contenu invalide (signature/extension incohérente, type interdit), `413` = taille > 10 Mio, `422` = schéma multipart invalide. Le nom de fichier fourni est ignoré (D-09).
 - **Alternatives** : extension seule ; MIME déclaré seul ; décodage par bibliothèques d'images (Pillow) pour les PNG/JPEG.
 - **Compromis** : `puremagic` (sniffing de magic bytes) est léger et sans dépendance d'imagerie au prix d'une heuristique documentée pour les TXT (contenu texte simple vérifié) ; la cohérence signature/extension empêche les faux MIME (plan de test §3).
 - **Impact** : route upload preuves (F12, F14), tests de contenu.
@@ -84,6 +84,7 @@ Registre des décisions non prescrites (règle 03 §4). Structure : date, statut
 - **Décision** : si `SMTP_HOST` est défini (Mailpit dans le compose), les e-mails (invitation, mot de passe oublié) sont envoyés par SMTP classique ; à défaut (dev minimal), un transport **log** écrit la ligne `DEV-EMAIL to=<email> subject=<s> token=<token>` dans la console — **dev uniquement**, et la variable `ENV=production` interdit ce transport (erreur de configuration). Les tokens restants hachés en base ne sont jamais loggés autrement.
 - **Alternatives** : SMTP seul (obligation de Mailpit en dev) ; transport mémoire non observable ; e-mails réels.
 - **Compromis** : le log de dev facilite la démo des flux invitation/reset sans service SMTP, en restant explicite (préfixe `DEV-EMAIL`) et interdit en production ; les données sont 100 % fictives (contrainte benchmark).
+- **Note sécurité** : (a) le transport log est strictement interdit si `ENV=production` (erreur de configuration, déjà le cas) ; (b) c'est l'**exception documentée unique** au principe « pas de secrets dans les logs » (spec §3.9) — elle est bornée au dev sans SMTP et suivie dans `QA_REPORT.md`, en cohérence avec le THREAT_MODEL ; (c) les `audit_events` ne portent **jamais** de token ni de mot de passe (garanti par le test F18) ; (d) dans le compose de livraison (Mailpit SMTP actif), les tokens passent par l'e-mail et non par les logs — le log `DEV-EMAIL` n'est alors plus utilisé.
 - **Impact** : routes invitations/reset, compose (Mailpit), `.env.example`.
 
 ## D-13 — Seed de démonstration
@@ -102,7 +103,7 @@ Registre des décisions non prescrites (règle 03 §4). Structure : date, statut
 
 ## D-15 — Modèle de collaboration agentique
 - **Date** : 2026-11-19 — **Statut** : adoptée
-- **Décision** : les 5 rôles obligatoires (Tech Lead/PM, UX/UI Designer, Développeur, Expert Cyber, QA/Reviewer) sont portés par **sous-agents Qwen distincts** (contextes et prompts séparés, mandat 03/07 et AGENTS.md) ; le **Tech Lead orchestre les merges** après revue QA (+ Cyber si sensible, cf. D de périmètre) ; **aucune notation interne** pendant le benchmark ; toute assistance non Qwen devrait être déclarée comme assistance externe (aucune prévue).
+- **Décision** : les 5 rôles obligatoires (Tech Lead/PM, UX/UI Designer, Développeur, Expert Cyber, QA/Reviewer) sont portés par **sous-agents Qwen distincts** (contextes et prompts séparés, mandat 03/07 et AGENTS.md) ; le **Tech Lead orchestre les merges** après revue QA (+ Cyber si sensible, cf. `docs/PLAN.md` §4 « Politique qualité ») ; **aucune notation interne** pendant le benchmark ; toute assistance non Qwen devrait être déclarée comme assistance externe (aucune prévue).
 - **Alternatives** : agent unique multi-rôles ; modèle de secours différent ; revue humaine.
 - **Compromis** : l'indépendance des revues est structurelle (rôle distinct) mais limitée par l'usage d'un même modèle — cette limite est consignée dans `QA_REPORT.md` (règle 03 §3 : revue non considérée aussi indépendante qu'humaine).
 - **Impact** : processus Git (PR, reviews), preuves de collaboration (issues, docs, verdicts).

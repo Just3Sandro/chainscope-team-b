@@ -145,13 +145,13 @@ Critères mesurables :
 | # | Risque | Impact | Mitigation | Propriétaire |
 |---|---|---|---|---|
 | R1 | Chemin critique séquentiel backend (12 issues) en 48 h | Retard sur le cœur métier, jalons J2–J3 manqués | Vertical slice dès J2 ; frontend/infra en parallèle ; audit intégré au socle ; arbitrages prioritaires quotidiens (Tech Lead) | Tech Lead |
-| R2 | Erreur sur l'algorithme contractuel du graphe (F08–F11) | Jalon 3 non validé, critère bloquant si mal géré | Tests unitaires sur le jeu de référence (score 75.0) + cas limites (cycles, équalities de score, >6 sauts, sans crown jewel, doublons d'edges) ; budget DFS 50 000 expansions → 422 `GRAPH_TOO_COMPLEX` documenté (D-10) | Développeur + QA |
+| R2 | Erreur sur l'algorithme contractuel du graphe (F08–F11) | Jalon 3 non validé, critère bloquant si mal géré | Tests unitaires sur le jeu de référence (score 75.0) + cas limites (cycles, égalités de score, >6 sauts, sans crown jewel, doublons d'edges) ; budget DFS 50 000 expansions → 422 `GRAPH_TOO_COMPLEX` documenté (D-10) | Développeur + QA |
 | R3 | Fuite cross-tenant / IDOR sur une resource | Critère bloquant (§6) | RBAC par ressource (jamais par URL ni par rôle client fourni), FK composites dès que praticable, matrice §3 plan de test exécutée en J4, revue Cyber sur toute PR sensible | Cyber |
 | R4 | Défaut sessions/CSRF/upload (F12–F14, F16) | Critère bloquant sécurité | THREAT_MODEL avant les endpoints (J1) ; Argon2id, sessions opaques hachées révoquables, `puremagic`+extension, plafond 10 Mio, `nosniff`/`attachment` ; tests F12–F14, F16 en J3–J4 | Cyber |
 | R5 | Dérive de périmètre (bonus, pages factices, sur-design) | Manque de fonction obligatoire | Périmètre strict spec §9 ; bonus seulement après J3 stabilisé ; 10_UX : aucun mock pour une fonctionnalité métier ; arbitrages consignés dans DECISIONS.md | Tech Lead |
 | R6 | Environnement non reproductible (F19/F20) | Clôture impossible, critère bloquant | Compose comme référence d'installation dès J1 ; healthchecks + migrations dans CI ; F19 (restart) et F20 (clone propre) testés explicitement en J4 | Développeur + QA |
 | R7 | Indépendance de revue limitée (5 rôles = même modèle) | Défaut non détecté | Contextes et prompts strictement séparés par rôle ; reviews documentées dans les PR ; QA peut refuser un merge ; limitation explicitement déclarée dans QA_REPORT (règle 03 §3) | Tech Lead |
-| R8 | Complexité UI graphe React Flow (R8 : dernier livrable frontend visible) | J4 non atteint, page 7 spec §7 absente | Le graphe UI n'affiche que la vérité serveur (pas de recalcul client, 10_UX) ; états vides/chargement/erreur dès #18 ; #21 borné à l'affichage nœuds/edges/chemin sélectionnable + positions persistées | Designer + Développeur |
+| R8 | Complexité UI graphe React Flow (dernier livrable frontend visible) | J4 non atteint, page 7 spec §7 absente | Le graphe UI n'affiche que la vérité serveur (pas de recalcul client, 10_UX) ; états vides/chargement/erreur dès #18 ; #21 borné à l'affichage nœuds/edges/chemin sélectionnable + positions persistées | Designer + Développeur |
 
 ## 6. Plan de clôture
 
