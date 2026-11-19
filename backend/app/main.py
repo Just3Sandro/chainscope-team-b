@@ -12,6 +12,7 @@ from app.api.router import api_router
 from app.config import get_settings
 from app.exceptions import register_exception_handlers
 from app.middleware import RequestIDMiddleware, SecurityHeadersMiddleware
+from app.security.csrf import CsrfProtectionMiddleware
 
 APP_TITLE = "ChainScope API"
 APP_VERSION = "0.1.0"
@@ -30,8 +31,13 @@ def create_app() -> FastAPI:
         redoc_url=None,
         openapi_url=f"{API_PREFIX}/openapi.json" if expose_docs else None,
     )
-    # Middlewares ASGI : le dernier ajouté est le plus externe ;
-    # RequestID doit précéder tous les gestionnaires d'erreurs (D-06).
+    # Middlewares ASGI : le dernier ajouté est le plus externe.
+    # - RequestIDMiddleware (D-06) : le plus externe, pose
+    #   `request.state.request_id` visible de tout l'arbre ;
+    # - SecurityHeadersMiddleware : en-têtes de sécurité sur toute réponse ;
+    # - CsrfProtectionMiddleware (D-05, issue #5) : le plus interne, après
+    #   RequestID (lit `request.state.request_id` dans le 403 normalisé).
+    app.add_middleware(CsrfProtectionMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(RequestIDMiddleware)
     register_exception_handlers(app)
