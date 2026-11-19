@@ -26,7 +26,7 @@ Fond de page gris-bleu très clair, surfaces blanches, bordures grises discrète
 
 - **UI** : **Inter** (Google Fonts, OFL) 400/500/600/700 — stack de repli système (`system-ui, "Segoe UI", Roboto…`).
 - **Monospace** : **JetBrains Mono** (Google Fonts, OFL) 400/600 pour **CVSS, UUID/ID, `request_id`, SHA-256, slug, valeurs de code** — jamais pour du texte courant.
-- Tailles (base 14 px pour la densité) : 11 caption / 12 secondaire / 14 corps et tableaux / 16 titres de section / 20 titre de page / 24 KPI et titres modales / 30 titre login.
+- Tailles (base 14 px pour la densité) : 11 caption / 12 secondaire / 14 corps et tableaux / 16 titres de section / 20 titre de page / 24 KPI et titres modales / 30 titre login. Le palier 11 px ne sert qu'aux libellés uppercase et chips, en `ink-soft` ou plus foncé — jamais en `ink-faint` (règle unique, §7.5).
 - Règle : le CVSS s'affiche toujours `7.8` (1 décimale) en mono ; un ID s'affiche en mono tronqué (`f4a2…c91d`) avec `title` complet.
 
 ### 1.5 Ton des microcopy
@@ -56,8 +56,8 @@ Court, opérationnel, à la voix active. Pas de marketing, pas de « Bienvenue !
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
 
-  --text-2xs: 0.6875rem;  --text-2xs--line-height: 1rem;      /* 11/16 caption, légendes */
-  --text-xs: 0.75rem;     --text-xs--line-height: 1rem;       /* 12/16 secondaire */
+  --text-2xs: 0.6875rem;  --text-2xs--line-height: 1rem;      /* 11/16 libellés uppercase/chips (ink-soft+, jamais ink-faint) */
+  --text-xs: 0.75rem;     --text-xs--line-height: 1rem;       /* 12/16 secondaire, aide, request_id, métadonnées */
   --text-sm: 0.875rem;    --text-sm--line-height: 1.25rem;    /* 14/20 corps, tableaux */
   --text-base: 0.875rem;  --text-base--line-height: 1.25rem;  /* 14/20 défaut UI */
   --text-lg: 1rem;        --text-lg--line-height: 1.5rem;     /* 16/24 titres de section */
@@ -188,7 +188,7 @@ CABINET — NomDuCabinet
   Mes missions            →   détail mission   →   détail constat
 ```
 
-- Un seul niveau de navigation : **Mes missions** (liste, `/client`) → mission (détail, `/client/m/:id`) → constat (dette, `/client/m/:id/f/:fid`).
+- Un seul niveau de navigation : **Mes missions** (liste, `/client`) → mission (détail, `/client/m/:id`) → constat (détail, `/client/m/:id/f/:fid`).
 - Aucune entrée vers le cabinet, le graphe, l'audit ou la gestion. Le chip « Portail client » (fond `mi-active-soft`, texte `mi-active-ink`) est permanent pour rappeler le mode lecture seule.
 - Menu utilisateur : « Se déconnecter » uniquement.
 
@@ -228,7 +228,7 @@ CABINET — NomDuCabinet
 
 - **Chargement** : squelettes (formes grises `surface-muted`, sans pulsation si `prefers-reduced-motion`) aux dimensions exactes du contenu ; tableaux : 5 lignes fantômes ; graphe : spinner centré + « Chargement du graphe… » sur canvas plein (`aria-busy="true"`). Jamais de bouton d'action actif pendant un chargement qui mute la vue (boutons en état `loading` : spinner interne, désactivés).
 - **Vide** : centré, écusson filaire 48 px + titre 14/600 + explication opérationnelle 12 px + CTA si le rôle autorise (ex. « Créer une mission »). Le vide est toujours explicatif, jamais « Aucun résultat » seul.
-- **Erreur** : bloc inline `danger-soft` bordé `danger/30`, icône 16 px, message 14 px, `request_id` mono 11 px, bouton fantôme « Réessayer ». Sur les listes, l'erreur remplace le corps de la liste mais garde les filtres (réessayable sans reperdre le contexte).
+- **Erreur** : bloc inline `danger-soft` bordé `danger/30`, icône 16 px, message 14 px, `request_id` mono 12 px, bouton fantôme « Réessayer ». Sur les listes, l'erreur remplace le corps de la liste mais garde les filtres (réessayable sans reperdre le contexte).
 - **Succès** : toast haut-droite (voir 4.6). Pas d'écran de succès dédié hormis auth (redirection immédiate + toast sur la page cible : « Mission créée. »).
 
 ### 4.2 Table de données
@@ -248,12 +248,12 @@ CABINET — NomDuCabinet
 | Statut constat | point + label, fond `st-*-soft` / texte `st-*-ink`, `radius-sm` | tables constats, détail |
 | Statut mission | label avec icône (brouillon / play / cadenas), fond `mi-*-soft` | tables missions, en-tête détail |
 | Publication | icône œil/œil barré + « Publié le 12/05 » ou « Non publié », texte `ink-soft`/`ink-faint` | tables constats, détail |
-| Criticité (graphe) | carré 18 px `radius-2xs`, fond `surface`, bord 1.5 px, chiffre 11/700 mono ; teinte du bord = échelle grise→critique (1: `ink-faint`, 5: `sev-critical`) | nœuds du graphe |
-| Rôle | pastille de texte 11 px uppercase (`TENANT ADMIN`, `PENTESTER`, `CLIENT`, `PLATFORM`) | sidebar, espace, comptes plateforme |
+| Criticité (graphe) | carré 18 px `radius-2xs`, fond `surface`, bord 1.5 px, chiffre 12/700 mono ; teinte du bord = échelle grise→critique (1: `ink-faint`, 5: `sev-critical`) | nœuds du graphe |
+| Rôle | pastille de texte 11 px uppercase `ink-soft` (`TENANT ADMIN`, `PENTESTER`, `CLIENT`, `PLATFORM`) | sidebar, espace, comptes plateforme |
 
 ### 4.4 Formulaires
 
-- `label` visible 12/500 au-dessus du champ (jamais de placeholder comme label) ; champ requis : `*` + `aria-required` ; aide 11 px `ink-faint` sous le champ.
+- `label` visible 12/500 au-dessus du champ (jamais de placeholder comme label) ; champ requis : `*` + `aria-required` ; aide 12 px `ink-faint` sous le champ.
 - Input 36 px, `radius-sm`, bordure `border-strong` au focus actif ; erreur : bordure `danger`, message 12 px `danger` avec icône, `aria-invalid` + `aria-describedby` pointant le message.
 - Validation : à la soumission + au blur pour les champs déjà modifiés ; CVSS : nombre 0–10, 1 décimale, message précis (« CVSS doit être entre 0.0 et 10.0 »).
 - Soumission : bouton primaire en état de chargement (spinner, désactivé) ; échec 4xx → erreurs inline ; 429 → message « Trop de requêtes. Réessayez dans un instant. » ; 5xx → bloc d'erreur + « Réessayer ».
@@ -273,6 +273,7 @@ CABINET — NomDuCabinet
   6. Passage du statut à **REMEDIATED** : « Ce constat sera exclu des chemins actifs du graphe. »
   7. **Clôture de mission** : « La mission passera en lecture seule pour le cabinet (réouverture par un administrateur uniquement). »
   8. Suspension / réactivation d'un tenant (plateforme) ; désactivation d'un compte (plateforme).
+  9. **Envoi d'invitation** (membre de cabinet ou compte client) : récapitulatif destinataire + rôle + durée de validité du lien (« Le lien est valable 7 jours et utilisable une fois. »).
 
 ### 4.6 Notifications (toast)
 
@@ -282,7 +283,7 @@ CABINET — NomDuCabinet
 
 ### 4.7 Carte KPI
 
-- 12 px padding, `radius-md`, bordure `border`, fond `surface` ; label 11 uppercase `ink-faint`, valeur 24/600 (mono si nombre technique), sous-ligne 12 px de contexte (« +3 cette semaine », « sur 4 missions actives »).
+- 12 px padding, `radius-md`, bordure `border`, fond `surface` ; label 12 px uppercase `ink-faint`, valeur 24/600 (mono si nombre technique), sous-ligne 12 px de contexte (« +3 cette semaine », « sur 4 missions actives »).
 - KPI cliquable = fond `selected` + flèche chevron ; il applique le filtre équivalent sur la page cible (ex. KPI « Constats ouverts HIGH » → liste des constats filtrée).
 
 ---
@@ -313,7 +314,7 @@ CABINET — NomDuCabinet
 - **Rôles** : TENANT_ADMIN (lecture + gestion), PENTESTER (lecture seule pour naviguer vers ses missions).
 - **Blocs liste** : tableau (nom, missions, membres, créés) + recherche + « Nouveau client » (modale 480 px : nom unique).
 - **Blocs détail** : en-tête (nom, chip « Client org ») ; **Membres & invitations** (tableau : e-mail, chip rôle CLIENT, statut actif/`En attente` + date d'expiration, actions « Copier le lien » / « Expired » sans action) + bouton « Inviter » (modale : e-mail, info « lien valable 7 jours, utilisable une fois ») ; **Missions** (tableau avec statuts, lien vers chaque mission).
-- **Confirmations** : envoi d'invitation (modale 5.5-4, mention durée).
+- **Confirmations** : envoi d'invitation (modale 4.5-9, mention durée).
 - **États** : vide (aucun client : CTA) ; invitations expirées : chip gris, non actionnables ; erreur/chargement standards.
 - **Interdits** : PENTESTER ne voit aucun bouton d'invitation ni de création ; pas de suppression de client (aucun endpoint DELETE clients) ; pas de champ d'information de contact libre hors du nom (pas de collecte de données inutiles).
 
@@ -322,10 +323,10 @@ CABINET — NomDuCabinet
 - **Rôles** : TENANT_ADMIN (gestion complète), PENTESTER (travaux techniques, sans clôture/réouverture).
 - **Liste** : tableau (nom, client, statut mission, constats, chemins actifs, modifiée) + filtres (statut, client) + recherche + « Nouvelle mission ».
 - **Création** (page `/missions/new` plutôt que modale, 4 champs) : nom, client (select), portée (textarea, multi-lignes), statut verrouillé `DRAFT`.
-- **Détail** : en-tête (nom, client, chip statut, portée 12 px), actions contextuelles : `DRAFT` → « Démarrer » ; `IN_PROGRESS` → « Fermer la mission » (confirm. 5.5-7) — visible TENANT_ADMIN, masquée PENTESTER ; `CLOSED` → bandeau lecture seule + « Rouvrir » (TENANT_ADMIN, confirmation).
+- **Détail** : en-tête (nom, client, chip statut, portée 12 px), actions contextuelles : `DRAFT` → « Démarrer » ; `IN_PROGRESS` → « Fermer la mission » (confirm. 4.5-7) — visible TENANT_ADMIN, masquée PENTESTER ; `CLOSED` → bandeau lecture seule + « Rouvrir » (TENANT_ADMIN, confirmation).
 - **Onglets** : `Actifs` · `Constats` · `Graphe`.
-  - *Actifs* : tableau (nom, type, criticité (badge 4.3), drapeaux : icône porte (entrée) / icône écusson (cible) + `aria-label`, position x/y en mono 11 px) + « Ajouter un actif » (modale 640 : nom, type select, criticité slider 1–5 avec prévisualisation du badge, checkboxes entrée/cible, description) + menu ligne (Modifier, Supprimer → confirm. 5.5-1).
-  - *Constats* : tableau (titre, sévérité, CVSS mono, statut, publication, modifiée) + filtres (sévérité, statut, publication) + « Nouveau constat » (page dédiée 2 colonnes : titre, sévérité (radio-chips), CVSS, description, impact, recommandation, statut defaut OPEN) + menu ligne (Ouvrir, Modifier statut, Supprimer → confirm. 5.5-3).
+  - *Actifs* : tableau (nom, type, criticité (badge 4.3), drapeaux : icône porte (entrée) / icône écusson (cible) + `aria-label`, position x/y en mono 12 px) + « Ajouter un actif » (modale 640 : nom, type select, criticité slider 1–5 avec prévisualisation du badge, checkboxes entrée/cible, description) + menu ligne (Modifier, Supprimer → confirm. 4.5-1).
+  - *Constats* : tableau (titre, sévérité, CVSS mono, statut, publication, modifiée) + filtres (sévérité, statut, publication) + « Nouveau constat » (page dédiée 2 colonnes : titre, sévérité (radio-chips), CVSS, description, impact, recommandation, statut par défaut `OPEN`) + menu ligne (Ouvrir, Modifier statut, Supprimer → confirm. 4.5-3).
 - **États** : vide (aucun actif → CTA ; aucun constat → CTA « Documenter le premier constat ») ; `CLOSED` : bandeau permanent + tous les onglets en lecture seule (boutons de mutation absents du DOM, 3.5-2) ; erreur/chargement standards.
 - **Interdits** : client changer un statut (route inexistante côté portail) ; PENTESTER clore/rouvrir ; éditer la portée après `IN_PROGRESS` (lecture seule dans l'en-tête) ; aucun affichage de chemins calculés côté client (les comptes « chemins actifs » viennent de `graph/paths`).
 
@@ -335,7 +336,7 @@ CABINET — NomDuCabinet
 - **Blocs (cabinet)** :
   1. **En-tête** : titre 20/600, chip sévérité (large, avec CVSS mono 16 px à droite), chip statut, chip publication, barre CVSS 0–10 (repère à la valeur, graduée 0/2.5/5/7.5/10).
   2. **Corps** : Description / Impact / Recommandation (sections 14/1.5, titres 14/600 ; texte rendu échappé, jamais de HTML brut).
-  3. **Actions** (colonne droite ou barre sticky) : « Modifier le statut » (menu : Open, In progress, **Remediated** → confirm. 5.5-6, **Accepted risk** + info « reste exploitable dans les chemins actifs »), « Publier » / « Rétracter » (confirm. 5.5-4/5), « Modifier » (page formulaire), « Supprimer » (confirm. 5.5-3, danger).
+  3. **Actions** (colonne droite ou barre sticky) : « Modifier le statut » (menu : **Ouvert**, **En cours**, **Corrigé** → confirm. 4.5-6, **Risque accepté** + info « reste exploitable dans les chemins actifs » ; valeurs d'enum envoyées : `OPEN`, `IN_PROGRESS`, `REMEDIATED`, `ACCEPTED_RISK`), « Publier » / « Rétracter » (confirm. 4.5-4/5), « Modifier » (page formulaire), « Supprimer » (confirm. 4.5-3, danger).
   4. **Preuves** : liste (fichier, type, taille, hash court mono, date, chip « Visible client » si `client_visible`) + « Ajouter une preuve » (modale : drag-drop/fichier, types PDF/PNG/JPEG/TXT, 10 Mio max, checkbox « visible par le client » non cochée par défaut) + téléchargement via route autorisée (bouton, jamais de lien direct au stockage).
   5. **Relations dans le graphe** : liste source → cible (noms d'actifs) + « Voir dans le graphe » (redirige `/missions/:id/graph` avec focus sur l'edge concerné).
   6. **Méta** : auteur, créé, modifié, publié le (si publié), engagement, client org.
@@ -357,7 +358,7 @@ CABINET — NomDuCabinet
 ### P8 — Administration plateforme (`/platform/tenants`, `/platform/users`)
 
 - **Rôle** : PLATFORM_ADMIN (garde 3.4).
-- **Tenants** : tableau (nom, slug mono, statut actif/suspendu, membres (count), créé le) + « Nouveau tenant » (modale 2 étapes : 1) nom + slug, 2) e-mail de l'admin à inviter) + menu ligne : Suspendre / Réactiver (confirm. 5.5-8 : « Les membres ne pourront plus se connecter ; les données sont conservées. »).
+- **Tenants** : tableau (nom, slug mono, statut actif/suspendu, membres (count), créé le) + « Nouveau tenant » (modale 2 étapes : 1) nom + slug, 2) e-mail de l'admin à inviter — la 2ᵉ étape récapitule destinataire + rôle et vaut confirmation (4.5-9)) + menu ligne : Suspendre / Réactiver (confirm. 4.5-8 : « Les membres ne pourront plus se connecter ; les données sont conservées. »).
 - **Comptes** : tableau (e-mail, statut actif/inactif, espaces (chips comptées : « 2 cabinets · 1 client » — **compteurs uniquement**, pas de détails), créé le) + menu ligne : Désactiver / Réactiver le compte (confirmation).
 - **États** : vides (aucun tenant : CTA) ; erreur/chargement standards.
 - **Interdits** : aucune lecture des données métiers (missions, constats, preuves, journaux tenant) — pas de lien, pas de colonne ; pas de modification d'un slug existant ; le détail d'un tenant s'ouvre seulement sur un sous-tableau de ses membres (e-mail + rôle), jamais sur ses ressources.
@@ -365,7 +366,7 @@ CABINET — NomDuCabinet
 ### P9 — Journal d'audit cabinet (`/audit`)
 
 - **Rôle** : TENANT_ADMIN uniquement (PENTESTER → 403).
-- **Blocs** : filtres (action (select multi : publication, suppression, login, invitation, changement de statut, téléchargement de preuve…), type de ressource, acteur, période (dates), recherche texte sur l'action) + tableau 32 px : horodatage (avec secondes, `text-xs`), acteur (initiales + nom), action (chip neutre 11 px), ressource (type + id court mono, ex. `Finding f4a2…`), `request_id` (mono 11 px, copiable au clic).
+- **Blocs** : filtres (action (select multi : publication, suppression, login, invitation, changement de statut, téléchargement de preuve…), type de ressource, acteur, période (dates), recherche texte sur l'action) + tableau 32 px : horodatage (avec secondes, `text-xs`), acteur (initiales + nom), action (chip neutre 11 px `ink-soft`), ressource (type + id court mono, ex. `Finding f4a2…`), `request_id` (mono 12 px, copiable au clic).
 - **Pagination** : `limit=50&offset` (dans la plage API `limit ≤ 100`), « Préc./Suiv. » + « 51–100 sur 1 234 ».
 - **États** : vide (filtres trop restrictifs : « Aucun événement ne correspond. Réinitialiser les filtres. ») ; chargement ; erreur.
 - **Interdits** : aucune metadata sensible (pas de corps de preuve, pas de description de constat, pas de token) ; pas d'export (bonus hors périmètre) ; pas d'action de correction dans le journal (append-only).
@@ -386,7 +387,7 @@ Le canvas **représente** la vérité serveur : actifs + positions, edges + leur
 | **Point d'entrée** | idem + liseré gauche 3 px `accent` + tag « ENTRÉE » (11 px, `accent-soft`/`accent`) | icône porte |
 | **Cible critique (crown jewel)** | idem + tag « CIBLE » (`sev-critical-soft`/`sev-critical-ink`) + icône écusson `sev-critical` | le seul nœud avec liseré haut `sev-critical` 3 px |
 
-- **Criticité 1–5** : badge carré 18 px (chiffre mono 11/700), teinte du bord et du chiffre : 1 `ink-faint` → 2 `ink-soft` → 3 `st-inprog` → 4 `sev-high` → 5 `sev-critical`. Criticité ≥ 4 : lueur (`box-shadow 0 0 12px 2px sev-high/35 %` ou `sev-critical/40 %`) — la lueur accompagne le badge, elle ne le remplace jamais (lisibilité au clavier et en impression).
+- **Criticité 1–5** : badge carré 18 px (chiffre mono 12/700), teinte du bord et du chiffre : 1 `ink-faint` → 2 `ink-soft` → 3 `st-inprog` → 4 `sev-high` → 5 `sev-critical`. Criticité ≥ 4 : lueur (`box-shadow 0 0 12px 2px sev-high/35 %` ou `sev-critical/40 %`) — la lueur accompagne le badge, elle ne le remplace jamais (lisibilité au clavier et en impression).
 - État sélectionné : anneau 2 px `focus` + `shadow-focus` ; état du chemin actif : anneau 2 px `accent` (voir 6.4).
 
 ### 6.3 Edges (relations)
@@ -402,7 +403,7 @@ Le canvas **représente** la vérité serveur : actifs + positions, edges + leur
 - **Panneau « Chemins actifs » (gauche, 280 px, repliable)** : liste ordonnée (score décroissant, comme l'API) ; chaque item : « P{n} · score {x} · {n} sauts · cible : {nom} », sous-ligne dépliable : la séquence actif → actif avec, à chaque saut, le chip sévérité + titre du constat. Item actif : fond `selected`, bord gauche `accent` 3 px.
 - **Sélection d'un chemin** (clic item ou clic edge puis « Chemin ») : les edges du chemin passent à 3 px `accent` avec animation de pointillés défilants (désactivée si `prefers-reduced-motion`) ; les nœuds concernés : anneau `accent` ; le reste du canvas : opacité 0.35 (mode focus). La sélection est persistée dans l'URL (`?path={index}`) pour être partageable et réactivée au retour.
 - **Clic nœud** : panneau latéral droit 320 px — nom, type, criticité (badge + « 4/5 »), drapeaux, constats associés (chips + CVSS mono), actions cabinet : « Modifier l'actif », « Supprimer » (confirmation), « Ouvrir la liste des actifs ».
-- **Clic edge** : même panneau — titre du constat (lien détail P5), chip sévérité, CVSS, statut, publication, actions : « Ouvrir le constat », « Supprimer cette relation » (confirmation 5.5-2 : « La relation {source} → {cible} sera supprimée. Le constat reste sur la mission. »).
+- **Clic edge** : même panneau — titre du constat (lien détail P5), chip sévérité, CVSS, statut, publication, actions : « Ouvrir le constat », « Supprimer cette relation » (confirmation 4.5-2 : « La relation {source} → {cible} sera supprimée. Le constat reste sur la mission. »).
 - **Édition** : bouton « Créer une relation » (mode édition) : clic source → clic cible → modale choix du constat (liste filtrable) → `POST edges` ; toast succès. Bouton « Supprimer » sur l'edge sélectionnée (id. confirmation).
 - **Positionnement** : drag d'un nœud → déplacement optimiste + **PATCH debouncé 500 ms** ; échec → retour à l'ancienne position + toast « Échec de l'enregistrement de la position. »
 - **Canvas** : fit-on-load, zoom molette/pincer, pan (space+drag), contrôles zoom + « Recentrer » en bas-droite ; **légende** en bas-gauche (repliable, `aria-label` « Légende du graphe ») : nœuds (standard/entrée/cible), criticité (échelle 1–5), edges (4 sévérités + pointillé corrigé), chemin actif.
@@ -427,7 +428,7 @@ Canvas `role="group"` `aria-label="Graphe d'attaque de la mission X"` ; résumé
 2. **Focus visible** : anneau 2 px `focus` + offset 2 px sur tout élément interactif (`:focus-visible`), y compris nœuds/edges du graphe et items de liste ; jamais supprimé.
 3. **Skip-link** : « Aller au contenu principal » en premier focusable de chaque page app.
 4. **Label** : tout champ a un `<label>` visible ; les contrôles sans texte (⋮, ×, zoom) ont un `aria-label` ; les chips couleur seules sont interdites (texte ou icône sémantique toujours présents).
-5. **Contraste AA** : paires du §2 vérifiées ≥ 4.5:1 (texte courant) et ≥ 3:1 (éléments UI) ; texte `ink-faint` réservé aux éléments non critiques (timestamps, `request_id`) et à ≥ 12 px.
+5. **Contraste AA** : paires du §2 vérifiées ≥ 4.5:1 (texte courant) et ≥ 3:1 (éléments UI). **Règle unique `ink-faint`** : réservé aux éléments non critiques (timestamps, aide de formulaire, `request_id`, badge de criticité) et toujours rendu en ≥ 12 px ; le palier 11 px ne sert qu'aux libellés uppercase et chips, en `ink-soft` ou plus foncé (cf. §1.4).
 6. **Rôles ARIA** : tableaux sémantiques + `caption` + `scope="col"` + `aria-sort` ; modales `role="dialog"` `aria-modal` `aria-labelledby` ; toasts `role="status"` ; graphe `role="group"` + alternative textuelle (6.6) ; listes de chemins = `<ol>` natif (pas de `role` artificiel).
 7. **Mouvement** : `prefers-reduced-motion` → pas de pointillés animés, pas de pulsation de squelette, pas de transition > 150 ms.
 8. **Tablette** : cibles ≥ 44 px via padding, sidebar en rail (tooltip au focus), modales en bottom-sheet plein large si < 900 px, drag du graphe au doigt (pinch-zoom conservé).
@@ -447,5 +448,6 @@ Canvas `role="group"` `aria-label="Graphe d'attaque de la mission X"` ; résumé
 ## 9. Décisions ouvertes / suivi
 
 - KPI agrégés du dashboard (P2) : endpoints existants vs endpoint dédié → Tech Lead (issue de suivi si nécessaire).
+- **Comptes plateforme (P8, `/platform/users`)** : la liste des comptes avec compteurs d'espaces n'existe pas dans le contrat API minimal de la spec §6 (routes plateforme limitées à `/platform/tenants`, cf. issue #7). P8 n'est implémentable que si le Tech Lead définit un endpoint de lecture seule plateforme pour les comptes (issue de suivi, à planifier avec #7/CS-04) ; cette route n'est pas présentée ici comme existante.
 - Nom des icônes d'actifs par type : choix d'un jeu d'icônes (Lucide, MIT) à la mise en œuvre, sans contrainte de ce document.
 - Le thème sombre et l'export PDF du journal d'audit sont des non-livrés assumés (bonus hors périmètre de ce design).
