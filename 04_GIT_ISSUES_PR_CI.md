@@ -2,8 +2,8 @@
 
 ## Dépôts et permissions
 
-- Deux **dépôts GitHub privés distincts**, créés depuis le même état initial. Aucun accès des agents de A au repo B et inversement.
-- Branche `main` protégée : PR obligatoire, suppression du push direct, au moins une approbation de revue (via mécanisme GitHub si possible ; sinon review agent tracée et merge effectué par une identité autorisée distincte), CI verte. Un compte agent n'a pas de rôle admin.
+- Deux **dépôts GitHub privés/public distincts**, créés depuis le même état initial. Aucun accès des agents de A au repo B et inversement.
+- Pour ce premier benchmark, `main` reste non protégée techniquement. Les agents doivent passer par des branches, des PR, des reviews QA/Cyber et une CI verte avant fusion. Aucun push direct sur `main` pendant le développement. Ces règles sont procédurales et non imposées par GitHub.
 - Identités et secrets de développement propres à chaque équipe ; mêmes capacités et restrictions. Aucun token avec permissions globales inutilement élevées.
 - Les tests privés et l'évaluation finale ne doivent exister dans **aucun** dépôt d'implémentation.
 
