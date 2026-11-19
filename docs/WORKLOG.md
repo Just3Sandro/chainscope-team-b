@@ -59,5 +59,9 @@ Journal opérationnel : horodatage (Europe/Paris), faits, interventions, état. 
 8. ✅ **Jalon 2 lancé** (13:10Z) : 2 sous-agents Développeur en parallèle — socle backend `feature/4-backend-socle` (issue #4) et socle frontend `feature/18-frontend-socle` (issue #18, DESIGN.md §2.2/§4/§5.P1).
 9. ✅ PR **#28** (D-17, contrat `GET /auth/me`, Tech Lead) revue QA « prêt à merge » et **fusionnée** (`6f0817d`) — contrat figé avant l'auth (#5), le frontend #18 code déjà contre lui.
 10. Issue **#27** (visibilité comptes plateforme P8, P2) ouverte pour arbitrage avec #7.
+11. ✅ **Socle frontend #18 merged** (13:29Z) : revue QA « prêt à merge » (32/32 vitest re-exécutés par QA et orchestrator, tokens 83/83 alignés, CSRF/401 vérifiés). PR #29 → commit `dc44d1e`.
+12. ✅ **Socle backend #4 merged** (13:35Z) : revues QA « PASS » + Cyber « prêt à merge (sécurité) » ; finding Cyber **#31** (X-Request-ID non borné → 500 + perte d'audit) corrigé dans la PR (regex `^[\w-]{1,64}$` + 3 tests + 3 tests d'isolation FK composite + .env.example complété), re-verification Cyber « CORRIGÉ (preuve) ». PR #30 → commit `3aceda3`. 14 tests socle.
+13. ✅ **Jalon 2 en cours** : auth backend **issue #5** lancée (sous-agent Développeur, `feature/5-auth`) : Argon2id, sessions opaques hachées, CSRF par session, reset non révélateur, rate limit, bootstrap CLI, audit (migration 0002 : actor_id nullable). Contrat CSRF exempts documenté dans la PR (→ D-19).
+14. Suivi non bloquant : CI #17 et headers nginx prod #16 attendus ; trivia frontend (commentaire api.ts, pointage D-17 dans types.ts) à regrouper ; issue #4 corrigée (15 tables, coquille orchestrator).
 
 **Rappels de process (03/04) :** branche par issue, PR avec `Closes #n`, revue QA (+ Cyber si sensible) par un rôle distinct, tests réellement exécutés avant merge, jamais de push direct sur `main`, commits conventionnels en français.
