@@ -52,8 +52,10 @@ Journal opérationnel : horodatage (Europe/Paris), faits, interventions, état. 
 1. ✅ Docker validé ; conteneurs de dev relancés (`cs-pg-dev` postgres:16 — user `chainscope`, DBs `chainscope` + `chainscope_test` ; `cs-mailpit-dev` — SMTP 1025, UI 8025). Mots de passe fictifs dev-only ; les valeurs livrées passent par `.env.example` sans secret réel.
 2. ✅ venv recréé (`/tmp/opencode/venv` : fastapi, uvicorn[standard], sqlalchemy, alembic, pydantic, pydantic-settings, argon2-cffi, httpx, pytest, pytest-asyncio, puremagic, python-multipart, email-validator, greenlet).
 3. ✅ `git worktree prune` (les worktrees `/tmp/opencode/wt-*` étaient perdus ; les branches vivent sur GitHub).
-4. 🔄 Passe QA (sous-agent) sur PR #24/#25/#26 → reviews `gh pr review` → merge orchestrator des 3 PR (Jalon 1 clos, issues #1/#2/#3).
-5. Jalon 2 — chaîne critique : PR du socle backend (issue #4 : app factory, 14 tables, migration initiale, erreurs normalisées, config, Dockerfile) ; en parallèle socle frontend (issue #18, selon DESIGN.md). Puis auth (#5), invitations (#6), plateforme (#7), cabinet (#8), actifs+constats (#9).
-6. Compose squelette + CI (#16/#17) dès que Postgres local est opérationnel pour les tests d'intégration (opérationnel depuis 14:00).
+4. ✅ Revue QA #1 (13:02Z) : #24 approuvé ; #25/#26 demandent corrections → corrections poussées par Cyber (`d05139a`) et Designer (`b5095ab`) + retours Tech Lead sur #24 (`b861477`) ; coquille DESIGN P8 corrigée par l'orchestrator (`02da5ff`).
+5. ✅ Re-revue QA (13:02Z) : 3 × « prêt à merge » (0 écart restant, cohérence croisée D↔T↔DESIGN vérifiée).
+6. ✅ **Jalon 1 CLOS** (13:03Z) : PR #24/#25/#26 fusionnées en squash sur main (`77c5220`, `3f45af8`, `24651ed`) ; issues #1/#2/#3 fermées.
+7. Issue de suivi **#27** créée (visibilité comptes plateforme P8, P2, à trancher avec #7).
+8. ✅ **Jalon 2 lancé** (13:10Z) : 2 sous-agents Développeur en parallèle — socle backend `feature/4-backend-socle` (issue #4) et socle frontend `feature/18-frontend-socle` (issue #18, DESIGN.md §2.2/§4/§5.P1).
 
 **Rappels de process (03/04) :** branche par issue, PR avec `Closes #n`, revue QA (+ Cyber si sensible) par un rôle distinct, tests réellement exécutés avant merge, jamais de push direct sur `main`, commits conventionnels en français.
