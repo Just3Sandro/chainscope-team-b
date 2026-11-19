@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens — DESIGN.md §2.2, copiés tels quels.
+ * Seule dérive (signalée dans la PR #18) : les deux tokens de police sont
+ * préfixés des familles enregistrées par @fontsource-variable
+ * ("Inter Variable" / "JetBrains Mono Variable"), car l'application doit
+ * fonctionner hors réseau après build (aucun lien Google Fonts).
+ */
+@theme {
+  /* Typographie */
+  --font-sans: "Inter Variable", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+
+  --text-2xs: 0.6875rem;  --text-2xs--line-height: 1rem;      /* 11/16 libellés uppercase/chips (ink-soft+, jamais ink-faint) */
+  --text-xs: 0.75rem;     --text-xs--line-height: 1rem;       /* 12/16 secondaire, aide, request_id, métadonnées */
+  --text-sm: 0.875rem;    --text-sm--line-height: 1.25rem;    /* 14/20 corps, tableaux */
+  --text-base: 0.875rem;  --text-base--line-height: 1.25rem;  /* 14/20 défaut UI */
+  --text-lg: 1rem;        --text-lg--line-height: 1.5rem;     /* 16/24 titres de section */
+  --text-xl: 1.25rem;     --text-xl--line-height: 1.75rem;    /* 20/28 titres de page */
+  --text-2xl: 1.5rem;     --text-2xl--line-height: 2.25rem;   /* 24/36 KPI, titres modales */
+  --text-3xl: 1.875rem;   --text-3xl--line-height: 2.5rem;    /* 30/40 titre login */
+
+  /* Neutres */
+  --color-canvas: #f4f6f9;          /* fond de page */
+  --color-surface: #ffffff;         /* cartes, panneaux, modales */
+  --color-surface-muted: #eef1f6;   /* en-têtes de tableau, zones inactives */
+  --color-hover: #f1f4f9;           /* survol de lignes/boutons fantômes */
+  --color-selected: #dbeafe;        /* ligne sélectionnée (accent-soft) */
+  --color-border: #e2e7ee;          /* bordure standard */
+  --color-border-strong: #c6cfdb;  /* bordure saillante, input au focus non actif */
+  --color-ink: #0f172a;            /* texte principal (≈15:1 sur blanc) */
+  --color-ink-soft: #475569;       /* texte secondaire (≈7,3:1) */
+  --color-ink-faint: #64748b;      /* texte tertiaire, timestamps (≈4,7:1) */
+  --color-ink-inverse: #ffffff;    /* texte sur accent/écusson sombre */
+
+  /* Accent (interactif) */
+  --color-accent: #1d4ed8;         /* bouton primaire, lien (≈5,5:1 avec blanc) */
+  --color-accent-hover: #1e40af;
+  --color-accent-soft: #dbeafe;    /* fond de sélection, KPI cliqué */
+  --color-focus: #3b82f6;          /* anneau de focus */
+
+  /* Sévérités — LOW / MEDIUM / HIGH / CRITICAL */
+  --color-sev-low: #0284c7;         --color-sev-low-soft: #e0f2fe;     --color-sev-low-ink: #075985;
+  --color-sev-medium: #d97706;     --color-sev-medium-soft: #fef3c7;   --color-sev-medium-ink: #92400e;
+  --color-sev-high: #ea580c;       --color-sev-high-soft: #ffedd5;     --color-sev-high-ink: #9a3412;
+  --color-sev-critical: #dc2626;   --color-sev-critical-soft: #fee2e2; --color-sev-critical-ink: #b91c1c;
+
+  /* Statuts de constats — OPEN / IN_PROGRESS / REMEDIATED / ACCEPTED_RISK */
+  --color-st-open: #64748b;        --color-st-open-soft: #eef2f6;       --color-st-open-ink: #334155;
+  --color-st-inprog: #d97706;      --color-st-inprog-soft: #fef3c7;     --color-st-inprog-ink: #92400e;
+  --color-st-remediated: #16a34a;  --color-st-remediated-soft: #dcfce7; --color-st-remediated-ink: #166534;
+  --color-st-accepted: #7c3aed;    --color-st-accepted-soft: #f3e8ff;   --color-st-accepted-ink: #6b21a8;
+
+  /* Statuts de missions */
+  --color-mi-draft: #64748b;       --color-mi-draft-soft: #eef2f6;      --color-mi-draft-ink: #334155;
+  --color-mi-active: #2563eb;      --color-mi-active-soft: #dbeafe;     --color-mi-active-ink: #1e40af;
+  --color-mi-closed: #334155;      --color-mi-closed-soft: #e2e8f0;     --color-mi-closed-ink: #1e293b;
+
+  /* Feedback (formes, toasts, validation) */
+  --color-success: #15803d;        --color-success-soft: #dcfce7;
+  --color-danger: #dc2626;         --color-danger-soft: #fee2e2;
+  --color-warning: #d97706;        --color-warning-soft: #fef3c7;
+
+  /* Rayons */
+  --radius-2xs: 4px;    /* tags, mini-chips */
+  --radius-xs: 6px;     /* points du graphe, icônes carrées */
+  --radius-sm: 8px;     /* boutons, inputs, chips statuts */
+  --radius-md: 12px;    /* cartes, KPI, panels */
+  --radius-lg: 16px;    /* modales */
+  --radius-pill: 999px; /* chips sévérité, pastilles de rôle */
+
+  /* Ombres */
+  --shadow-xs: 0 1px 2px rgb(15 23 42 / 0.05);
+  --shadow-sm: 0 1px 3px rgb(15 23 42 / 0.08), 0 1px 2px rgb(15 23 42 / 0.04);
+  --shadow-md: 0 4px 12px rgb(15 23 42 / 0.10);   /* menu, panneau latéral */
+  --shadow-lg: 0 12px 32px rgb(15 23 42 / 0.14);  /* modale */
+  --shadow-focus: 0 0 0 3px rgb(59 130 246 / 0.35); /* anneau de focus */
+}
+
+/* Reset minimal — aucune couleur hors tokens. */
+@layer base {
+  html {
+    font-family: var(--font-sans);
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-size: var(--text-base);
+    line-height: var(--text-base--line-height);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* DESIGN §7.2 : focus visible, anneau 2 px + offset 2 px, jamais supprimé. */
+  :focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
+  /* DESIGN §7.7 : mouvement réduit → pas d'animation ni de transition > 150 ms. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
