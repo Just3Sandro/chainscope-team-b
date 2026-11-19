@@ -5,13 +5,19 @@ import type { AuthMe, CsrfResponse } from './types'
  *
  * - Origine unique : le navigateur ne parle qu'au backend (spec §2) →
  *   `credentials: 'same-origin'` et `baseURL` relative `/api/v1`.
- * - CSRF (DECISIONS D-05) : toute mutation cookie-based (POST/PATCH/PUT/DELETE)
- *   attache le header `X-CSRF-Token`, obtenu via `GET /auth/csrf` — cache en
- *   mémoire, 1 seul appel tant que le token est valide.
+ * - CSRF (DECISIONS D-05, rotation arbitrée Cyber PR #32 / issue #37) :
+ *   les mutations session (POST/PATCH/PUT/DELETE hors routes anonymes)
+ *   attachent le header `X-CSRF-Token`, obtenu via `GET /auth/csrf` — cache
+ *   mémoire, 1 seul appel ; le backend **rotate** le token à chaque
+ *   `/auth/csrf`, donc sur `403 CSRF_INVALID` : re-fetch + **retry unique**
+ *   de la mutation (un second 403 est surfacé). Les routes anonymes
+ *   (login, forgot-password, reset-password, accept-invitation) ne
+ *   déclenchent aucun `/auth/csrf` (pas de session ⇒ 401 garanti).
  * - Erreurs (spec §6, D-06) : enveloppe normalisée `{ error: { code, message, request_id } }`.
  * - 401 : émission de l'événement `SESSION_EXPIRED_EVENT` + callback injectable ;
  *   le handler par défaut redirige vers `/login` (jamais depuis une page auth).
- * - 403 : surfacé tel quel (ApiError), aucune redirection.
+ * - 403 : surfacé tel quel (ApiError), aucune redirection ; exception :
+ *   `CSRF_INVALID` sur une mutation → re-fetch du token + retry unique (cf. CSRF).
  */
 
 export const API_BASE_URL = '/api/v1'
@@ -20,6 +26,24 @@ export const API_BASE_URL = '/api/v1'
 export const SESSION_EXPIRED_EVENT = 'chainscope:session-expired'
 
 const MUTATING_METHODS: readonly string[] = ['POST', 'PATCH', 'PUT', 'DELETE']
+
+/**
+ * Routes exemptées CSRF : routes d'authentification anonymes (pas de session,
+ * donc pas de cookie `cs_session`) — le serveur ne vérifie pas `X-CSRF-Token`
+ * dessus (arbitrage Cyber sur la PR #32, issue #37 ; cf. D-05 « mutations
+ * fondées sur les cookies » et D-07 : les quatre POST anonymes). Le client ne
+ * déclenche donc **aucun** `GET /auth/csrf` avant elles, et le 403
+ * `CSRF_INVALID` n'y surviendra pas : pas de retry pour ces routes.
+ */
+const CSRF_EXEMPT_PATHS: readonly string[] = [
+  '/auth/login',
+  '/auth/forgot-password',
+  '/auth/reset-password',
+  '/auth/accept-invitation',
+]
+
+/** Code d'erreur normalisé renvoyé par le backend quand le token CSRF est invalide (roté). */
+const CSRF_INVALID_CODE = 'CSRF_INVALID'
 
 /** Préfixes des pages d'authentification : pas de redirection 401 depuis ces pages. */
 const AUTH_PATH_PREFIXES: readonly string[] = ['/login', '/forgot', '/reset', '/invite']
@@ -129,6 +153,9 @@ export interface RequestOptions {
   body?: unknown
 }
 
+/** Résultat typé d'un échange HTTP (le 4xx/5xx n'est pas levé ici : c'est `request` qui décide). */
+type FetchOutcome = { ok: true; data: unknown } | { ok: false; error: ApiError }
+
 export class ApiClient {
   private readonly baseUrl: string
   private readonly fetchFn: typeof fetch
@@ -150,31 +177,64 @@ export class ApiClient {
 
   async request<T>(path: string, options: RequestOptions = {}): Promise<T> {
     const method = (options.method ?? 'GET').toUpperCase()
+    const isMutation = MUTATING_METHODS.includes(method)
+    // Les routes exemptées (anonymes) n'ont pas de token à récupérer : le
+    // premier appel de /auth/csrf y renverrait un 401 (pas de session) et
+    // bloquerait la soumission (issue #37).
+    const needsCsrf = isMutation && !CSRF_EXEMPT_PATHS.includes(path)
     const headers = new Headers()
     headers.set('Accept', 'application/json')
-    if (options.body !== undefined) headers.set('Content-Type', 'application/json')
-    if (MUTATING_METHODS.includes(method)) {
+    const body = options.body !== undefined ? JSON.stringify(options.body) : undefined
+    if (body !== undefined) headers.set('Content-Type', 'application/json')
+    if (needsCsrf) {
       headers.set('X-CSRF-Token', await this.resolveCsrfToken())
     }
+
+    const url = buildUrl(this.baseUrl, path, options.query)
+    let outcome = await this.fetchOutcome(url, method, headers, body)
+
+    // Contrat de rotation CSRF (arbitrage Cyber PR #32, issue #37) : le backend
+    // rotate le token à chaque GET /auth/csrf — le token en cache mémoire peut
+    // être invalidé par un appel concurrent (ex. un autre onglet). Sur 403
+    // `CSRF_INVALID` : invalidation du cache, re-fetch du token, puis retry
+    // UNIQUE de la mutation ; un second 403 est surfacé tel quel.
+    if (
+      !outcome.ok &&
+      needsCsrf &&
+      outcome.error.status === 403 &&
+      outcome.error.code === CSRF_INVALID_CODE
+    ) {
+      this.resetCsrfCache()
+      headers.set('X-CSRF-Token', await this.resolveCsrfToken())
+      outcome = await this.fetchOutcome(url, method, headers, body)
+    }
+
+    if (!outcome.ok) {
+      if (outcome.error.status === 401) this.notifySessionExpired(isMutation)
+      throw outcome.error
+    }
+    return outcome.data as T
+  }
+
+  /** Effectue l'appel et le convertit en `FetchOutcome` (réseau → ApiError 0/NETWORK). */
+  private async fetchOutcome(
+    url: string,
+    method: string,
+    headers: Headers,
+    body: string | undefined,
+  ): Promise<FetchOutcome> {
     let response: Response
     try {
-      response = await this.fetchFn(buildUrl(this.baseUrl, path, options.query), {
-        method,
-        headers,
-        credentials: 'same-origin',
-        body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
-      })
+      response = await this.fetchFn(url, { method, headers, credentials: 'same-origin', body })
     } catch {
-      throw new ApiError(0, 'NETWORK', 'Le serveur est injoignable.', null)
+      return { ok: false, error: new ApiError(0, 'NETWORK', 'Le serveur est injoignable.', null) }
     }
-    if (response.status === 204) return undefined as T
+    if (response.status === 204) return { ok: true, data: undefined }
     const payload = await readJson(response)
     if (!response.ok) {
-      const error = ApiError.fromEnvelope(response.status, payload)
-      if (response.status === 401) this.notifySessionExpired(MUTATING_METHODS.includes(method))
-      throw error
+      return { ok: false, error: ApiError.fromEnvelope(response.status, payload) }
     }
-    return payload as T
+    return { ok: true, data: payload }
   }
 
   /** `GET /auth/csrf` : token opaque par session (D-05). Un seul appel tant que le token est en cache. */
