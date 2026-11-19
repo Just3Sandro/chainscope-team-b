@@ -53,7 +53,7 @@ describe('lib/api.ts', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
-  it('mutations : un seul GET /auth/csrf (cache mémoire) puis X-CSRF-Token sur POST et PATCH', async () => {
+  it('mutations : /auth/csrf absent pour la route anonyme, token sur la mutation session (cache mémoire)', async () => {
     let csrfCalls = 0
     const seen: Array<{ url: string; token: string | null; credentials: string | undefined }> = []
     const fetchMock = mockFetch((url, init) => {
@@ -69,12 +69,13 @@ describe('lib/api.ts', () => {
     await client.login('admin@aegis-red-team.fr', 'mot-de-passe-test')
     await client.logout()
 
-    expect(csrfCalls).toBe(1)
+    expect(csrfCalls).toBe(1) // un seul appel : pour logout, jamais pour login (route anonyme)
     expect(seen).toHaveLength(2)
     expect(seen[0]?.url).toBe(`${API_BASE_URL}/auth/login`)
+    expect(seen[0]?.token).toBeNull() // exemptée : aucun header X-CSRF-Token
     expect(seen[1]?.url).toBe(`${API_BASE_URL}/auth/logout`)
+    expect(seen[1]?.token).toBe('tok-csrf-1')
     for (const entry of seen) {
-      expect(entry.token).toBe('tok-csrf-1')
       expect(entry.credentials).toBe('same-origin')
     }
   })
@@ -112,16 +113,18 @@ describe('lib/api.ts', () => {
     expect(error).toMatchObject({ status: 502, code: 'HTTP_502', requestId: null })
   })
 
-  it('resetPassword : corps { token, password, password_confirmation } (contrat D-19 / PR #32), avec CSRF', async () => {
+  it('resetPassword : corps { token, password, password_confirmation } (contrat D-19 / PR #32), sans /auth/csrf (route anonyme)', async () => {
+    const urls: string[] = []
     let body: unknown = null
     const fetchMock = mockFetch((url, init) => {
-      if (url.endsWith('/auth/csrf')) return json(200, { csrf_token: 'tok' })
+      urls.push(url)
       body = JSON.parse(String(init?.body)) as unknown
       return json(204)
     })
     const client = new ApiClient({ fetchFn: fetchMock })
     await client.resetPassword('tk-123', 'Nouveau123', 'Nouveau123')
     expect(body).toEqual({ token: 'tk-123', password: 'Nouveau123', password_confirmation: 'Nouveau123' })
+    expect(urls).toEqual([`${API_BASE_URL}/auth/reset-password`])
   })
 
   it('401 sur un chargement : événement DOM + callback injectable, expired=false, pas de boucle de mutation', async () => {
@@ -155,7 +158,7 @@ describe('lib/api.ts', () => {
     expect(onSessionExpired).toHaveBeenCalledWith({ expired: true })
   })
 
-  it('401 sur /auth/csrf : la mutation n’est pas envoyée, session expirée signalée', async () => {
+  it('401 sur /auth/csrf (mutation session) : la mutation n’est pas envoyée, session expirée signalée', async () => {
     const onSessionExpired = vi.fn()
     const fetchMock = mockFetch((url) => {
       if (url.endsWith('/auth/csrf')) {
@@ -164,7 +167,7 @@ describe('lib/api.ts', () => {
       throw new Error('la mutation ne doit pas être envoyée')
     })
     const client = new ApiClient({ fetchFn: fetchMock, onSessionExpired })
-    const error = await client.login('a@b.c', 'x').catch((e: unknown) => e)
+    const error = await client.logout().catch((e: unknown) => e)
     expect(error).toMatchObject({ status: 401 })
     expect(onSessionExpired).toHaveBeenCalledTimes(1)
     expect(onSessionExpired).toHaveBeenCalledWith({ expired: false })
@@ -179,15 +182,116 @@ describe('lib/api.ts', () => {
           ? json(500, { error: { code: 'INTERNAL', message: 'Erreur interne.', request_id: 'r' } })
           : json(200, { csrf_token: 'tok-retry' })
       }
-      return json(200, ME)
+      return json(204)
     })
     const client = new ApiClient({ fetchFn: fetchMock })
 
-    const first = await client.login('a@b.c', 'x').catch((e: unknown) => e)
+    const first = await client.logout().catch((e: unknown) => e)
     expect(first).toMatchObject({ status: 500 })
 
-    await expect(client.login('a@b.c', 'x')).resolves.toEqual(ME)
+    await expect(client.logout()).resolves.toBeUndefined()
     expect(csrfAttempts).toBe(2)
+  })
+})
+
+describe('lib/api.ts — rotation CSRF (arbitrage Cyber PR #32, issue #37)', () => {
+  const ENGAGEMENTS = '/tenants/t-1/engagements'
+
+  it('403 CSRF_INVALID sur mutation : invalidation du cache, re-fetch du token, retry unique réussi', async () => {
+    let csrfCalls = 0
+    let postCalls = 0
+    const fetchMock = mockFetch((url, init) => {
+      if (url.endsWith('/auth/csrf')) {
+        csrfCalls += 1
+        return json(200, { csrf_token: csrfCalls === 1 ? 'tok-ancien' : 'tok-roté' })
+      }
+      postCalls += 1
+      if (postCalls === 1) {
+        expect(headersOf(init).get('X-CSRF-Token')).toBe('tok-ancien')
+        return json(403, {
+          error: { code: 'CSRF_INVALID', message: 'Jeton CSRF invalide (roté par un autre appel).', request_id: 'req-csrf-1' },
+        })
+      }
+      expect(headersOf(init).get('X-CSRF-Token')).toBe('tok-roté')
+      return json(200, { created: true })
+    })
+    const client = new ApiClient({ fetchFn: fetchMock })
+
+    await expect(client.request(ENGAGEMENTS, { method: 'POST', body: { name: 'Audit Web 2026' } })).resolves.toEqual({
+      created: true,
+    })
+    expect(csrfCalls).toBe(2) // cache invalidé puis re-fetch
+    expect(postCalls).toBe(2) // essai initial + retry unique
+  })
+
+  it('403 CSRF_INVALID persistant : ApiError surfacé, un seul retry, pas de boucle', async () => {
+    let csrfCalls = 0
+    let postCalls = 0
+    const fetchMock = mockFetch((url) => {
+      if (url.endsWith('/auth/csrf')) {
+        csrfCalls += 1
+        return json(200, { csrf_token: `tok-${csrfCalls}` })
+      }
+      postCalls += 1
+      return json(403, {
+        error: { code: 'CSRF_INVALID', message: 'Jeton CSRF invalide.', request_id: postCalls === 1 ? 'req-a' : 'req-b' },
+      })
+    })
+    const client = new ApiClient({ fetchFn: fetchMock })
+
+    const error = await client.request(ENGAGEMENTS, { method: 'POST', body: {} }).catch((e: unknown) => e)
+    expect(error).toMatchObject({ status: 403, code: 'CSRF_INVALID', requestId: 'req-b' })
+    expect(postCalls).toBe(2) // exactement un retry
+    expect(csrfCalls).toBe(2)
+  })
+
+  it('403 autre que CSRF_INVALID sur mutation : aucun retry (comportement inchangé)', async () => {
+    let postCalls = 0
+    const fetchMock = mockFetch((url) => {
+      if (url.endsWith('/auth/csrf')) return json(200, { csrf_token: 'tok' })
+      postCalls += 1
+      return json(403, {
+        error: { code: 'FORBIDDEN', message: 'Permission insuffisante.', request_id: 'req-f' },
+      })
+    })
+    const client = new ApiClient({ fetchFn: fetchMock })
+    const error = await client.request(ENGAGEMENTS, { method: 'POST', body: {} }).catch((e: unknown) => e)
+    expect(error).toMatchObject({ status: 403, code: 'FORBIDDEN' })
+    expect(postCalls).toBe(1)
+  })
+
+  it('GET 403 CSRF_INVALID : aucun retry (non mutation, pas de token géré)', async () => {
+    let calls = 0
+    const fetchMock = mockFetch(() => {
+      calls += 1
+      return json(403, {
+        error: { code: 'CSRF_INVALID', message: 'Jeton CSRF invalide.', request_id: 'req-g' },
+      })
+    })
+    const client = new ApiClient({ fetchFn: fetchMock })
+    const error = await client.request(ENGAGEMENTS).catch((e: unknown) => e)
+    expect(error).toMatchObject({ status: 403, code: 'CSRF_INVALID' })
+    expect(calls).toBe(1)
+  })
+
+  it('routes anonymes (login, forgot, reset, accept) : aucun /auth/csrf, aucun header, aucun retry sur 403', async () => {
+    let postCalls = 0
+    const fetchMock = mockFetch((url, init) => {
+      if (url.endsWith('/auth/csrf')) throw new Error('aucun /auth/csrf attendu pour une route anonyme')
+      if (url.endsWith('/auth/login')) {
+        postCalls += 1
+        expect(headersOf(init).get('X-CSRF-Token')).toBeNull()
+        // 403 (autre code) sur route exemptée : surfacé tel quel, jamais de re-fetch
+        return json(403, {
+          error: { code: 'FORBIDDEN', message: 'Refus.', request_id: 'req-x' },
+        })
+      }
+      return json(204)
+    })
+    const client = new ApiClient({ fetchFn: fetchMock })
+    const error = await client.login('a@b.c', 'x').catch((e: unknown) => e)
+    expect(error).toMatchObject({ status: 403, code: 'FORBIDDEN' })
+    expect(postCalls).toBe(1)
   })
 })
 
