@@ -63,5 +63,9 @@ Journal opérationnel : horodatage (Europe/Paris), faits, interventions, état. 
 12. ✅ **Socle backend #4 merged** (13:35Z) : revues QA « PASS » + Cyber « prêt à merge (sécurité) » ; finding Cyber **#31** (X-Request-ID non borné → 500 + perte d'audit) corrigé dans la PR (regex `^[\w-]{1,64}$` + 3 tests + 3 tests d'isolation FK composite + .env.example complété), re-verification Cyber « CORRIGÉ (preuve) ». PR #30 → commit `3aceda3`. 14 tests socle.
 13. ✅ **Jalon 2 en cours** : auth backend **issue #5** lancée (sous-agent Développeur, `feature/5-auth`) : Argon2id, sessions opaques hachées, CSRF par session, reset non révélateur, rate limit, bootstrap CLI, audit (migration 0002 : actor_id nullable). Contrat CSRF exempts documenté dans la PR (→ D-19).
 14. Suivi non bloquant : CI #17 et headers nginx prod #16 attendus ; trivia frontend (commentaire api.ts, pointage D-17 dans types.ts) à regrouper ; issue #4 corrigée (15 tables, coquille orchestrator).
+15. ✅ PR #32 (auth #5) livrée (5 commits, 43 tests) → **PAUSE commanditaire 14:55** : 4 tâches en vol — QA (#32), Cyber (#32, arbitrages CSRF rotation + cookie Path), Dev FE (fix #33, worktree `wt-fix33`), Tech Lead (D-19). Constat à 15:00 :
+    - **PR #34 (D-19)** livrée par le Tech Lead, commit `2d1c639`, poussée, en attente de revue QA (post-pause).
+    - **Issue #33** créée (contrat reset-password : `password_confirmation`) ; **issue #31** fermée (fix re-vérifié par Cyber avec preuve).
+    - PR #32 ouverte sur `feature/5-auth` (worktree `/tmp/opencode/wt-auth`) — revues QA/Cyber en cours à la pause.
 
 **Rappels de process (03/04) :** branche par issue, PR avec `Closes #n`, revue QA (+ Cyber si sensible) par un rôle distinct, tests réellement exécutés avant merge, jamais de push direct sur `main`, commits conventionnels en français.
