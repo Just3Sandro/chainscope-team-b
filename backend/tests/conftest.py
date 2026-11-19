@@ -43,7 +43,9 @@ def migrated_db() -> str:
 
 @pytest.fixture
 def db(migrated_db: str):
-    """Une session par test ; fermée (donc transaction rollback) à la fin."""
+    """Session SQLAlchemy par test, fermée en fin de test (les écritures du
+    test non commitées sont annulées). Le reset du schéma est fait par
+    `migrated_db`, qui COMMITTE `DROP/CREATE SCHEMA` — pas de rollback."""
     from app.db import SessionLocal
 
     session = SessionLocal()

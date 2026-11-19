@@ -42,9 +42,7 @@ class Context:
     engagement: Engagement
 
 
-@pytest.fixture
-def context(db) -> Context:
-    suffix = uuid.uuid4().hex[:10]
+def _build_context(db, suffix: str) -> Context:
     user = User(email=f"pentester.{suffix}@exemplif.fr", password_hash="argon2id$exemplif")
     tenant = Tenant(name=f"Cabinet {suffix}", slug=f"cabinet-{suffix}")
     db.add_all([user, tenant])
@@ -68,6 +66,11 @@ def context(db) -> Context:
     return Context(user=user, tenant=tenant, client_org=client_org, engagement=engagement)
 
 
+@pytest.fixture
+def context(db) -> Context:
+    return _build_context(db, uuid.uuid4().hex[:10])
+
+
 # --- API socle --------------------------------------------------------------
 @pytest.mark.asyncio
 async def test_health_200(client) -> None:
@@ -77,7 +80,7 @@ async def test_health_200(client) -> None:
     # En-têtes de base (middleware)
     assert response.headers["x-content-type-options"] == "nosniff"
     assert response.headers["x-frame-options"] == "DENY"
-    assert response.headers["referrer-policy"] == "same-origin"
+    assert response.headers["referrer-policy"] == "no-referrer"  # T-47
     # X-Request-ID généré si absent (D-06)
     assert response.headers["x-request-id"]
 
@@ -103,6 +106,44 @@ async def test_request_id_client_propage(client) -> None:
     )
     assert response.status_code == 200
     assert response.headers["x-request-id"] == incoming
+
+
+@pytest.mark.asyncio
+async def test_request_id_conforme_court_propage(client) -> None:
+    """ID conforme au pattern (ex. `abc-123`) : propagé tel quel (issue #31)."""
+    response = await client.get(
+        "/api/v1/health", headers={"X-Request-ID": "abc-123"}
+    )
+    assert response.status_code == 200
+    assert response.headers["x-request-id"] == "abc-123"
+
+
+@pytest.mark.asyncio
+async def test_request_id_trop_long_ignore_genera(client) -> None:
+    r"""ID de 500 caractères (hors bornes `^[\w-]{1,64}$`, issue #31) :
+    ignoré sans erreur — le serveur répond 200 avec un UUID valide (<= 64)."""
+    response = await client.get(
+        "/api/v1/health", headers={"X-Request-ID": "x" * 500}
+    )
+    assert response.status_code == 200
+    returned = response.headers["x-request-id"]
+    assert returned != "x" * 500
+    assert len(returned) <= 64
+    uuid.UUID(returned)  # bien un UUID v4 généré par le serveur
+
+
+@pytest.mark.asyncio
+async def test_request_id_caracteres_hors_pattern_ignores(client) -> None:
+    r"""Valeurs ASCII hors pattern `^[\w-]{1,64}$` : ignorées, UUID généré.
+    (Les valeurs non-ASCII ne sont pas testables : httpx n'accepte que des
+    valeurs d'en-tête ASCII — limitation du client, pas du serveur.)"""
+    for incoming in ("abc 123", "abc;drop", "ok=1", "abc/123", "abc.def", "a" * 65):
+        response = await client.get(
+            "/api/v1/health", headers={"X-Request-ID": incoming}
+        )
+        assert response.status_code == 200
+        assert response.headers["x-request-id"] != incoming
+        assert len(response.headers["x-request-id"]) <= 64
 
 
 # --- Contraintes de base (comportement défini : 409 unicité, 400 CHECK) ------
@@ -169,6 +210,131 @@ def test_duplicate_membership_rejected(db, context) -> None:
     assert (status, code) == (409, ErrorCode.CONFLICT)
 
 
+# --- Isolation tenant et unicités (QA écart 5 : inserts ORM directs) --------
+def test_asset_cross_tenant_rejected_by_composite_fk(db) -> None:
+    """Un actif dont l'engagement appartient à UN AUTRE tenant que
+    `asset.tenant_id` est rejeté par la FK composite
+    (tenant_id, engagement_id) => engagements(tenant_id, id) : 23503,
+    comportement défini 400 VALIDATION (spec §5 : pas de référence
+    cross-tenant, même au niveau base)."""
+    ctx_a = _build_context(db, uuid.uuid4().hex[:10])
+    ctx_b = _build_context(db, uuid.uuid4().hex[:10])
+    rogue = Asset(
+        tenant_id=ctx_a.tenant.id,
+        engagement_id=ctx_b.engagement.id,  # engagement du tenant B
+        name="Actif illégitime",
+        type=AssetType.OTHER,
+    )
+    db.add(rogue)
+    with pytest.raises(IntegrityError) as exc_info:
+        db.commit()
+    db.rollback()
+    assert getattr(exc_info.value.orig, "pgcode", None) == "23503"
+    status, code, _message = classify_integrity_error(exc_info.value)
+    assert (status, code) == (400, ErrorCode.VALIDATION)
+
+
+def test_attack_edge_duplicate_rejected(db, context) -> None:
+    """Unicité (source, target, finding) : la même relation exacte ne peut
+    exister qu'une fois => IntegrityError 23505, comportement défini 409."""
+    from app.models import AttackEdge
+
+    suffix = uuid.uuid4().hex[:10]
+    source = Asset(
+        tenant_id=context.tenant.id,
+        engagement_id=context.engagement.id,
+        name=f"Actif source {suffix}",
+        type=AssetType.WEB,
+    )
+    target = Asset(
+        tenant_id=context.tenant.id,
+        engagement_id=context.engagement.id,
+        name=f"Actif cible {suffix}",
+        type=AssetType.DATABASE,
+    )
+    db.add_all([source, target])
+    db.flush()
+    finding = Finding(
+        tenant_id=context.tenant.id,
+        engagement_id=context.engagement.id,
+        title=f"Constat edges {suffix}",
+        description="d",
+        impact="i",
+        recommendation="r",
+        severity=FindingSeverity.LOW,
+        cvss=Decimal("5.0"),
+        created_by=context.user.id,
+    )
+    db.add(finding)
+    db.flush()
+    db.add(
+        AttackEdge(
+            tenant_id=context.tenant.id,
+            engagement_id=context.engagement.id,
+            source_asset_id=source.id,
+            target_asset_id=target.id,
+            finding_id=finding.id,
+        )
+    )
+    db.commit()
+    with pytest.raises(IntegrityError) as exc_info:
+        db.add(
+            AttackEdge(
+                tenant_id=context.tenant.id,
+                engagement_id=context.engagement.id,
+                source_asset_id=source.id,
+                target_asset_id=target.id,
+                finding_id=finding.id,
+            )
+        )
+        db.commit()
+    db.rollback()
+    status, code, _message = classify_integrity_error(exc_info.value)
+    assert (status, code) == (409, ErrorCode.CONFLICT)
+
+
+def test_evidence_storage_key_duplicate_rejected(db, context) -> None:
+    """Unicité `evidences.storage_key` : doublon => IntegrityError 23505,
+    comportement défini 409 (le stockage_key est généré par le serveur,
+    D-09 ; le test vérifie la contrainte de base)."""
+    from app.models import Evidence
+
+    suffix = uuid.uuid4().hex[:10]
+    finding = Finding(
+        tenant_id=context.tenant.id,
+        engagement_id=context.engagement.id,
+        title=f"Constat evidence {suffix}",
+        description="d",
+        impact="i",
+        recommendation="r",
+        severity=FindingSeverity.MEDIUM,
+        cvss=Decimal("5.0"),
+        created_by=context.user.id,
+    )
+    db.add(finding)
+    db.flush()
+    storage_key = f"tenant-{context.tenant.id}/{uuid.uuid4()}.png"
+
+    def _make_evidence() -> Evidence:
+        return Evidence(
+            tenant_id=context.tenant.id,
+            engagement_id=context.engagement.id,
+            finding_id=finding.id,
+            storage_key=storage_key,
+            sha256="a" * 64,
+            mime="image/png",
+            size_bytes=1024,
+            created_by=context.user.id,
+        )
+
+    db.add(_make_evidence())
+    db.commit()
+    with pytest.raises(IntegrityError) as exc_info:
+        db.add(_make_evidence())
+        db.commit()
+    db.rollback()
+    status, code, _message = classify_integrity_error(exc_info.value)
+    assert (status, code) == (409, ErrorCode.CONFLICT)
 # --- Migration (à exécuter en dernier : destructive) ------------------------
 def test_migration_re_runnable(migrated_db) -> None:
     """Downgrade complet puis 2× `alembic upgrade head` sans erreur (idempotent),

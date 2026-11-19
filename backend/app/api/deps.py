@@ -20,7 +20,9 @@ def get_request_id(request: Request) -> str:
 
 
 DbSession = Annotated[Session, Depends(get_db)]
-"""Dépendance session (une par requête, fermée par le middleware get_db)."""
+"""Dépendance FastAPI (annotation `Annotated`) : une session SQLAlchemy par
+requête, ouverte puis fermée par la fonction de dépendance `get_db`
+(`app.db`) — ce n'est pas un middleware."""
 
 
 __all__ = ["DbSession", "get_request_id"]
