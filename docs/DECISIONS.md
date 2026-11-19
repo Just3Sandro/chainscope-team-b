@@ -114,3 +114,25 @@ Registre des décisions non prescrites (règle 03 §4). Structure : date, statut
 - **Alternatives** : SQLite pour la dev (écarts de comportement Postgres) ; virtualenv par service ; dev entièrement Dockerisé.
 - **Compromis** : Postgres 16 partout garantit la parité avec le livrable (F19/F20, index et FK composites) ; le venv partagé simplifie l'itération backend, au prix d'un dev qui dépend de Docker pour Postgres — documenté dans le README.
 - **Impact** : J1 (infrastructure), CI, README, `.env.example`, tests d'intégration.
+
+## D-17 — Contrat de l'endpoint `GET /auth/me`
+- **Date** : 2026-11-19 — **Statut** : adoptée
+- **Décision** : fige le contrat de `GET /api/v1/auth/me`, authentifié par le cookie `cs_session` (D-04). `401` si non connecté. Réponse JSON (200) :
+  ```json
+  {
+    "id": "<uuid user>",
+    "email": "…",
+    "is_active": true,
+    "platform_admin": false,
+    "tenant_memberships": [
+      {"tenant_id": "…", "tenant_name": "…", "slug": "…", "role": "TENANT_ADMIN"}
+    ],
+    "client_memberships": [
+      {"client_org_id": "…", "client_org_name": "…", "tenant_id": "…"}
+    ]
+  }
+  ```
+  Règles : `platform_admin` = présence dans `platform_admins` (la table ne porte pas de champ `role` — booléen, spec §5) ; les arrays sont vides `[]` et non `null` ; `is_active=false` ⇒ `401` (compte suspendu traité comme non connecté, aucune fuite d'existence) ; le tenant d'un PENTESTER apparaît dans `tenant_memberships` avec son `role` ; aucun secret ni hash dans la réponse ; la décision du « tenant courant » est côté **client** par défaut (`tenant_memberships[0]`) avec possibilité de sélection — le serveur exige toujours le tenant via l'URL pour les routes cabinet (spec §6).
+- **Alternatives** : payload d'identité dupliqué par route ; endpoint `/auth/profile` dédié ; rôle global unique dans la réponse. Rejetées pour le périmètre : un seul endpoint canonique couvre la navigation par rôle des 5 pages de J2 sans doublon de contrat.
+- **Compromis** : le contrat figé découple le frontend (#18, déjà en cours) du backend (#5, non implémenté) pendant le jalon 2, aligné avec D-01 (layout) et D-04 (cookie session) ; la « sélection » de tenant reste un état purement client, le serveur ne s'en fie jamais (spec §5 : aucune permission déduite du client) ; extension ultérieure possible par ajout de champs (compatibilité ascendante), sans modification de ceux-ci.
+- **Impact** : issue #5 (implémentation backend conforme à ce contrat, revue Cyber), issue #18 (client + navigation par rôle du socle frontend), issue #19 (dashboard consomme `tenant_memberships[0]` comme tenant courant).
