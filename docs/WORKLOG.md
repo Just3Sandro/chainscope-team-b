@@ -21,7 +21,21 @@ Journal opérationnel : horodatage (Europe/Paris), faits, interventions, état. 
 | 12:09 | **Commanditaire** : redémarrage du poste prévu pour corriger Docker ; consigne d'arrêt propre — changements sauvegardés sur branches, pas de push direct sur main |
 | 12:09–12:10 | `docs/WORKLOG.md` écrit et poussé sur `docs/worklog-state` |
 
-## État à l'arrêt (12:10)
+### INTERRUPTION (redémarrage du poste) — 12:10 → 13:43
+
+| Heure (Paris) | Événement |
+|---|---|
+| 13:43 | **REPRISE** — message de reprise commun ; incident Docker déclaré résolu (daemon 29.10.0, overlay2) |
+| 13:45 | Vérification état : main à `b13cd42`, 3 PR ouvertes, 23 issues ouvertes, worktrees `/tmp/opencode/wt-*` et venv perdus au redémarrage ; `git worktree prune` effectué |
+| 13:47 | Accès socket Docker encore refusé : le commanditaire a exécuté `usermod -aG docker pedruntu` (groupe visible) mais la session OpenCode (démarrée avant) n'en hérite pas — limitation Linux : un arbre de processus ne gagne pas de groupes supplémentaires après son démarrage |
+| 13:55 | Question au commanditaire ; choix : `sudo chmod 666 /var/run/docker.sock` (immédiat) — **intervention environnement, non technique** |
+| 14:00 | Accès Docker validé (socket 666, daemon overlay2) ; conteneurs de dev relancés : `cs-pg-dev` (postgres:16, user `chainscope`, DBs `chainscope` + `chainscope_test`) et `cs-mailpit-dev` (SMTP 1025, UI 8025) |
+| 14:02 | venv Python partagé recréé (`/tmp/opencode/venv`, SQLAlchemy 2.1.9, dépendances identiques) |
+| 14:05 | Passe QA (sous-agent Qwen) lancée sur PR #24/#25/#26 |
+
+**Interventions extérieures cumulées** : aucune instruction de développement. Deux interventions infrastructure (relancer Docker puis autoriser l'accès socket) et deux questions environnement posées au commanditaire. Tous les sous-agents restent sur `openrouter/qwen/qwen3.8-27b`.
+
+## État courant
 
 **Fermé (livré, en attente de merge) :**
 - Jalon 1 (planification) : 3 PR ouvertes et MERGEABLE, à reviewer par QA puis merge orchestrator :
@@ -34,15 +48,12 @@ Journal opérationnel : horodatage (Europe/Paris), faits, interventions, état. 
 - Aucune instruction technique reçue. Échanges environnement uniquement (lancer Docker, redémarrer le poste). Aucun appel cloud non-Qwen ; tous les sous-agents tournent sur `openrouter/qwen/qwen3.8-27b` (opencode.json).
 - Les 2 questions posées au commanditaire (mode Postgres local ; accès Docker) sont des demandes d'infrastructure, pas d'assistance développement.
 
-**À faire après le redémarrage (ordre) :**
-1. Vérifier Docker (`docker info`) ; relancer les conteneurs de dev :
-   - Postgres 16 : `docker run -d --name cs-pg-dev -e POSTGRES_USER=chainscope -e POSTGRES_PASSWORD=devfictional -e POSTGRES_DB=chainscope -p 5432:5432 postgres:16` puis `docker exec cs-pg-dev psql -U chainscope -c "CREATE DATABASE chainscope_test;"`
-   - Mailpit : `docker run -d --name cs-mailpit-dev -p 1025:1025 -p 8025:8025 axllent/mailpit`
-   (mots de passe fictifs dev-only ; les valeurs livrées passent par `.env.example` sans secret réel)
-2. Recréer le venv si `/tmp/opencode/venv` a disparu (liste exacte dans la commande initiale : fastapi, uvicorn[standard], sqlalchemy, alembic, pydantic, pydantic-settings, argon2-cffi, httpx, pytest, pytest-asyncio, puremagic, python-multipart, email-validator, greenlet).
-3. `git worktree prune` (les worktrees `/tmp/opencode/wt-*` seront perdus ; les branches vivent sur GitHub).
-4. Passe QA (sous-agent) sur PR #24/#25/#26 → reviews `gh pr review` → merge orchestrator des 3 PR (Jalon 1 clos, issues #1/#2/#3).
+**À faire (ordre) — 1 à 3 exécutés à 14:02 :**
+1. ✅ Docker validé ; conteneurs de dev relancés (`cs-pg-dev` postgres:16 — user `chainscope`, DBs `chainscope` + `chainscope_test` ; `cs-mailpit-dev` — SMTP 1025, UI 8025). Mots de passe fictifs dev-only ; les valeurs livrées passent par `.env.example` sans secret réel.
+2. ✅ venv recréé (`/tmp/opencode/venv` : fastapi, uvicorn[standard], sqlalchemy, alembic, pydantic, pydantic-settings, argon2-cffi, httpx, pytest, pytest-asyncio, puremagic, python-multipart, email-validator, greenlet).
+3. ✅ `git worktree prune` (les worktrees `/tmp/opencode/wt-*` étaient perdus ; les branches vivent sur GitHub).
+4. 🔄 Passe QA (sous-agent) sur PR #24/#25/#26 → reviews `gh pr review` → merge orchestrator des 3 PR (Jalon 1 clos, issues #1/#2/#3).
 5. Jalon 2 — chaîne critique : PR du socle backend (issue #4 : app factory, 14 tables, migration initiale, erreurs normalisées, config, Dockerfile) ; en parallèle socle frontend (issue #18, selon DESIGN.md). Puis auth (#5), invitations (#6), plateforme (#7), cabinet (#8), actifs+constats (#9).
-6. Compose squelette + CI (#16/#17) dès que Postgres local est opérationnel pour les tests d'intégration.
+6. Compose squelette + CI (#16/#17) dès que Postgres local est opérationnel pour les tests d'intégration (opérationnel depuis 14:00).
 
 **Rappels de process (03/04) :** branche par issue, PR avec `Closes #n`, revue QA (+ Cyber si sensible) par un rôle distinct, tests réellement exécutés avant merge, jamais de push direct sur `main`, commits conventionnels en français.
