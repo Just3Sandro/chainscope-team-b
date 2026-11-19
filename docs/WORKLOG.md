@@ -67,5 +67,6 @@ Journal opérationnel : horodatage (Europe/Paris), faits, interventions, état. 
     - **PR #34 (D-19)** livrée par le Tech Lead, commit `2d1c639`, poussée, en attente de revue QA (post-pause).
     - **Issue #33** créée (contrat reset-password : `password_confirmation`) ; **issue #31** fermée (fix re-vérifié par Cyber avec preuve).
     - PR #32 ouverte sur `feature/5-auth` (worktree `/tmp/opencode/wt-auth`) — revues QA/Cyber en cours à la pause.
+    - **PR #35 (fix #33)** livrée par le Dev FE avant la fin de la pause : `feature/33-reset-contract`, commit `76d92f6`, 33/33 vitest + typecheck 0 erreur (re-vérifier les sorties au retour) ; en attente de revue QA. `acceptInvitation` inchangé (`{token,password}` per spec §6 — à confirmer avec #6).
 
 **Rappels de process (03/04) :** branche par issue, PR avec `Closes #n`, revue QA (+ Cyber si sensible) par un rôle distinct, tests réellement exécutés avant merge, jamais de push direct sur `main`, commits conventionnels en français.
